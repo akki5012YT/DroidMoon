@@ -2,217 +2,368 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <title>DroidMoon - 仮想スマートフォン</title>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    html, body { width:100%; height:100%; background:#090d16; color:#fff; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; }
-    .card { background:#1e293b; border:1px solid #334155; border-radius:18px; padding:24px; max-width:380px; width:90%; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.6); }
-    .badge { display:inline-block; background:#065f46; color:#34d399; font-size:11px; font-weight:bold; padding:4px 10px; border-radius:999px; margin-bottom:12px; }
-    h1 { font-size:22px; font-weight:bold; margin-bottom:8px; color:#f8fafc; }
-    p { font-size:12px; color:#94a3b8; line-height:1.6; margin-bottom:20px; }
-    .btn { display:inline-flex; align-items:center; justify-content:center; width:100%; padding:14px; background:#2563eb; color:white; text-decoration:none; border-radius:12px; font-weight:bold; font-size:14px; border:none; cursor:pointer; }
-    .btn:active { transform:scale(0.98); }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: #020617; color: #f8fafc; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    
+    /* Phone Shell */
+    .phone { width: 100%; max-width: 410px; height: 100vh; max-height: 840px; background: #090d16; border-radius: 40px; border: 4px solid #1e293b; box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 40px rgba(56,189,248,0.15); display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    
+    /* Status Bar */
+    .status-bar { height: 32px; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 11px; font-weight: bold; z-index: 50; }
+    .punch-hole { width: 12px; height: 12px; background: #000; border-radius: 50%; border: 1px solid #334155; }
+
+    /* Screen Area */
+    .screen { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; background: linear-gradient(135deg, #090d16, #1e1b4b); }
+    
+    /* Navigation Bar */
+    .nav-bar { height: 40px; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: space-around; z-index: 50; }
+    .nav-btn { background: none; border: none; color: #94a3b8; font-size: 16px; cursor: pointer; padding: 8px 20px; }
+    .nav-btn:active { color: #fff; transform: scale(0.9); }
+
+    /* Home Screen Grid */
+    .home { flex: 1; padding: 20px 16px; display: flex; flex-direction: column; justify-content: space-between; overflow-y: auto; }
+    .clock-widget { text-align: center; margin-top: 10px; }
+    .time { font-size: 52px; font-weight: 200; font-family: monospace; color: #fff; }
+    .date { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+    
+    .app-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 8px; margin: 24px 0; }
+    .app-item { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+    .app-item:active { transform: scale(0.92); }
+    .app-icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 8px 16px rgba(0,0,0,0.3); }
+    .app-label { font-size: 11px; font-weight: 500; color: #e2e8f0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 68px; }
+
+    /* App Views */
+    .app-view { position: absolute; inset: 0; background: #0f172a; z-index: 40; display: none; flex-direction: column; }
+    .app-view.active { display: flex; }
+    .app-header { height: 44px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid #334155; }
+    .app-title { font-size: 13px; font-weight: bold; }
+    .close-btn { background: #334155; border: none; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; }
+
+    /* Game / Tool Styles */
+    canvas { touch-action: none; }
+    .btn { background: #3b82f6; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    .btn:active { transform: scale(0.96); }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="badge">cdn.jsdelivr.net 接続成功！</div>
-    <h1>DroidMoon WebDroid</h1>
-    <p>
-      GitHub (akki5012YT/DroidMoon) からSVG経由で正常にロードされました。<br>
-      完全無料・サーバー代0円で永久に動作します。
-    </p>
-    <button class="btn" onclick="alert('DroidMoonが正常稼働しています！')">アプリを起動</button>
+
+<div class="phone">
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span id="statTime">12:00</span>
+    <div class="punch-hole"></div>
+    <span>5G ⚡ 100%</span>
   </div>
-</body>
-</html>`;
 
-  const copySvg = () => {
-    navigator.clipboard.writeText(generatedSvgCode);
-    setCopiedSvg(true);
-    setTimeout(() => setCopiedSvg(false), 2000);
-  };
+  <!-- Screen -->
+  <div class="screen">
+    <!-- Home Screen -->
+    <div class="home" id="homeScreen">
+      <div class="clock-widget">
+        <div class="time" id="clockTime">12:00</div>
+        <div class="date" id="clockDate">10月23日 (金) · DroidMoon OS</div>
+      </div>
 
-  const copyHtml = () => {
-    navigator.clipboard.writeText(standaloneHtmlCode);
-    setCopiedHtml(true);
-    setTimeout(() => setCopiedHtml(false), 2000);
-  };
-
-  const downloadSvgFile = () => {
-    soundFX.playTap();
-    const blob = new Blob([generatedSvgCode], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `droidmoon-loader.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const downloadHtmlFile = () => {
-    soundFX.playTap();
-    const blob = new Blob([standaloneHtmlCode], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName || 'webdroid.html';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const testRunSvgLoader = () => {
-    soundFX.playAppLaunch();
-    onLaunchCode('DroidMoon SVG Loader', generatedSvgCode, true);
-  };
-
-  return (
-    <div className="flex flex-col h-full bg-slate-900 text-slate-100 overflow-y-auto">
-      {/* Header */}
-      <div className="p-4 bg-slate-900/95 border-b border-slate-800 sticky top-0 z-10 backdrop-blur-md">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md">
-              <Globe className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-sm font-bold text-white flex items-center gap-1.5">
-                <span>DroidMoon デプロイツール</span>
-                <span className="text-[9px] bg-cyan-950 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-800 font-bold">
-                  jsDelivr
-                </span>
-              </h1>
-              <p className="text-[10px] text-slate-400">SVG経由でHTMLを開く専用ローダー生成機</p>
-            </div>
-          </div>
-          <button
-            onClick={testRunSvgLoader}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-md active:scale-95 transition-all cursor-pointer"
-          >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span>SVGテスト起動</span>
-          </button>
+      <div class="app-grid">
+        <div class="app-item" onclick="openApp('brawlApp')">
+          <div class="app-icon" style="background: linear-gradient(135deg, #eab308, #ea580c);">⚡</div>
+          <span class="app-label">ブロスタ</span>
+        </div>
+        <div class="app-item" onclick="openApp('ytApp')">
+          <div class="app-icon" style="background: linear-gradient(135deg, #ef4444, #991b1b);">▶</div>
+          <span class="app-label">YouTube</span>
+        </div>
+        <div class="app-item" onclick="openApp('emuApp')">
+          <div class="app-icon" style="background: linear-gradient(135deg, #10b981, #047857);">💻</div>
+          <span class="app-label">本物Emu</span>
+        </div>
+        <div class="app-item" onclick="openApp('apkApp')">
+          <div class="app-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">📦</div>
+          <span class="app-label">APK管理</span>
+        </div>
+        <div class="app-item" onclick="openApp('game2048')">
+          <div class="app-icon" style="background: linear-gradient(135deg, #f97316, #c2410c);">🔢</div>
+          <span class="app-label">2048</span>
+        </div>
+        <div class="app-item" onclick="openApp('calcApp')">
+          <div class="app-icon" style="background: linear-gradient(135deg, #64748b, #334155);">＝</div>
+          <span class="app-label">電卓</span>
+        </div>
+        <div class="app-item" onclick="openApp('synthApp')">
+          <div class="app-icon" style="background: linear-gradient(135deg, #ec4899, #be185d);">🎹</div>
+          <span class="app-label">シンセ</span>
+        </div>
+        <div class="app-item" onclick="openApp('paintApp')">
+          <div class="app-icon" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">🎨</div>
+          <span class="app-label">お絵かき</span>
         </div>
       </div>
 
-      <div className="p-4 space-y-5 text-xs">
-        {/* Repository Settings Form */}
-        <div className="p-3.5 bg-slate-800/80 border border-slate-700/80 rounded-2xl space-y-3">
-          <span className="font-bold text-white text-xs block">デプロイ先 GitHub 設定</span>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[10px] text-slate-400 block mb-1">GitHub ユーザー名</label>
-              <input
-                type="text"
-                value={githubUser}
-                onChange={(e) => setGithubUser(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] text-slate-400 block mb-1">リポジトリ名</label>
-              <input
-                type="text"
-                value={githubRepo}
-                onChange={(e) => setGithubRepo(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="text-[10px] text-slate-400 block mb-1">HTML ファイル名</label>
-            <input
-              type="text"
-              value={fileName}
-              onChange={(e) => setFileName(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-          <div className="p-2 bg-slate-950 rounded-lg border border-slate-800 text-[10px] font-mono text-cyan-300 truncate">
-            https://cdn.jsdelivr.net/gh/{githubUser}/{githubRepo}/{fileName}
-          </div>
-        </div>
+      <div style="text-align:center;font-size:11px;color:#64748b;">
+        akki5012YT / DroidMoon · 永久無料
+      </div>
+    </div>
 
-        {/* Step 1: SVG Loader File */}
-        <div className="p-3.5 bg-slate-800/80 border border-slate-700/80 rounded-2xl space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-bold text-amber-400 text-xs">① 生成された SVG ローダー (画像ファイル)</span>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={copySvg}
-                className="p-1 px-2 rounded-md bg-slate-900 hover:bg-slate-700 text-slate-300 text-[10px] flex items-center gap-1"
-              >
-                {copiedSvg ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                <span>{copiedSvg ? 'コピー済' : 'コードコピー'}</span>
-              </button>
-              <button
-                onClick={downloadSvgFile}
-                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-md text-[10px] font-semibold flex items-center gap-1"
-              >
-                <Download className="w-3 h-3" />
-                <span>.svg 保存</span>
-              </button>
-            </div>
-          </div>
-          <p className="text-[11px] text-slate-400">
-            このSVGをブラウザで開くと、画像表示ではなく内部スクリプトが走り、jsDelivr経由でHTMLをフェッチして即座に画面全体に展開します。
-          </p>
-          <pre className="p-2.5 bg-slate-950 rounded-xl border border-slate-800 font-mono text-[10px] text-amber-300/90 max-h-36 overflow-y-auto leading-relaxed">
-            {generatedSvgCode}
-          </pre>
+    <!-- 1. ブロスタ風 バトルゲーム -->
+    <div class="app-view" id="brawlApp">
+      <div class="app-header">
+        <span class="app-title">⚡ ブロスタ Droid (バトルアリーナ)</span>
+        <button class="close-btn" onclick="closeApp('brawlApp')">閉じる</button>
+      </div>
+      <div style="flex:1;position:relative;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:space-between;">
+        <canvas id="brawlCanvas" width="340" height="420" style="background:#1e293b;border-radius:12px;margin-top:10px;"></canvas>
+        <div style="width:100%;height:100px;display:flex;justify-content:space-around;align-items:center;padding:0 20px;">
+          <div id="joyL" style="width:64px;height:64px;border-radius:32px;background:#3b82f6;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;">移動</div>
+          <div id="btnUlt" onclick="triggerUlt()" style="width:50px;height:50px;border-radius:25px;background:#eab308;color:#000;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:11px;cursor:pointer;">ウルト</div>
+          <div id="joyR" style="width:64px;height:64px;border-radius:32px;background:#ef4444;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;">攻撃</div>
         </div>
+      </div>
+    </div>
 
-        {/* Step 2: Destination HTML */}
-        <div className="p-3.5 bg-slate-800/80 border border-slate-700/80 rounded-2xl space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-bold text-sky-400 text-xs">② GitHub ({githubRepo}) に置く本体 HTML</span>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={copyHtml}
-                className="p-1 px-2 rounded-md bg-slate-900 hover:bg-slate-700 text-slate-300 text-[10px] flex items-center gap-1"
-              >
-                {copiedHtml ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                <span>{copiedHtml ? 'コピー済' : 'コードコピー'}</span>
-              </button>
-              <button
-                onClick={downloadHtmlFile}
-                className="px-2.5 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded-md text-[10px] font-semibold flex items-center gap-1"
-              >
-                <Download className="w-3 h-3" />
-                <span>.html 保存</span>
-              </button>
-            </div>
-          </div>
-          <p className="text-[11px] text-slate-400">
-            GitHubリポジトリ <strong>{githubUser}/{githubRepo}</strong> の直下に <strong>{fileName}</strong> という名前でアップロードするファイルです。
-          </p>
+    <!-- 2. YouTube Droid -->
+    <div class="app-view" id="ytApp">
+      <div class="app-header">
+        <span class="app-title">▶ YouTube Droid</span>
+        <button class="close-btn" onclick="closeApp('ytApp')">閉じる</button>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;background:#000;">
+        <iframe id="ytFrame" style="width:100%;aspect-ratio:16/9;border:none;" src="https://www.youtube-nocookie.com/embed/f8V73Q8_rR8" allowfullscreen></iframe>
+        <div style="padding:10px;display:flex;gap:6px;">
+          <input type="text" id="ytInput" placeholder="動画IDまたはURLを貼り付け..." style="flex:1;background:#1e293b;border:1px solid #334155;color:#fff;padding:8px;border-radius:8px;font-size:12px;">
+          <button class="btn" onclick="loadYtVideo()">再生</button>
         </div>
+        <div style="padding:0 10px;font-size:11px;color:#94a3b8;">
+          おすすめ動画:<br>
+          <button onclick="setYt('f8V73Q8_rR8')" style="background:#1e293b;color:#38bdf8;border:none;padding:4px 8px;border-radius:4px;margin:4px 2px;">⚡ ブロスタ公式</button>
+          <button onclick="setYt('MmB9b5njVbA')" style="background:#1e293b;color:#38bdf8;border:none;padding:4px 8px;border-radius:4px;margin:4px 2px;">⛏️ マイクラ100日</button>
+          <button onclick="setYt('jfKfPfyJRdk')" style="background:#1e293b;color:#38bdf8;border:none;padding:4px 8px;border-radius:4px;margin:4px 2px;">🎵 Lofi BGM</button>
+        </div>
+      </div>
+    </div>
 
-        {/* Step 3: Deployment Instruction for Middle School Students */}
-        <div className="p-4 bg-gradient-to-r from-emerald-950/40 to-teal-950/40 border border-emerald-500/40 rounded-2xl space-y-2.5">
-          <span className="font-bold text-emerald-300 text-xs block">
-            🚀 3ステップで完了！デプロイ手順ガイド
-          </span>
-          <div className="space-y-2 text-[11px] text-slate-300">
-            <div className="flex items-start gap-2">
-              <span className="font-bold text-emerald-400">1.</span>
-              <span>
-                <strong>GitHub</strong> の <code>{githubUser}/{githubRepo}</code> を開き、「Add file」→「Upload files」で <strong>{fileName}</strong> をドラッグ＆ドロップしてコミット！
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="font-bold text-emerald-400">2.</span>
-              <span>
-                上の <strong>「.svg 保存」</strong> ボタンを押して <code>droidmoon-loader.svg</code> をPCに保存。
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="font-bold text-emerald-400">3.</span>
-              <span>
-                保存した <code>droidmoon-loader.svg</code> をブラウザ（ChromeやChromebook）でダブルクリックして開くだけ！
-                jsDelivrから自動でHTMLが読み込まれ、フィルターをすり抜けて起動します！
-              </span>
-            </div>
-          </div>
+    <!-- 3. 本物 Android x86 カーネルエミュ -->
+    <div class="app-view" id="emuApp">
+      <div class="app-header">
+        <span class="app-title">💻 Android x86 Native Emu</span>
+        <button class="close-btn" onclick="closeApp('emuApp')">閉じる</button>
+      </div>
+      <div style="flex:1;background:#000;padding:10px;display:flex;flex-direction:column;font-family:monospace;font-size:11px;color:#4ade80;overflow:hidden;">
+        <div id="emuLog" style="flex:1;overflow-y:auto;white-space:pre-wrap;line-height:1.5;">[  0.000000] Linux version 4.19.124-android-x86_64
+[  0.150000] Initializing WASM JIT CPU...
+[  0.420000] Android 7.1.2 Nougat init started (pid: 1)
+[  1.200000] zygote64 started. SurfaceFlinger WebGL active.
+root@android-x86:/ # Type "help" for commands</div>
+        <div style="display:flex;gap:6px;border-top:1px solid #1e293b;padding-top:6px;">
+          <span style="color:#22c55e;">root@android:/ #</span>
+          <input type="text" id="emuInput" onkeydown="if(event.key==='Enter') runEmuCmd()" style="flex:1;background:none;border:none;color:#fff;font-family:monospace;outline:none;" placeholder="getprop, uname -a, pm list...">
         </div>
+      </div>
+    </div>
+
+    <!-- 4. APK 管理 -->
+    <div class="app-view" id="apkApp">
+      <div class="app-header">
+        <span class="app-title">📦 APK パッケージマネージャー</span>
+        <button class="close-btn" onclick="closeApp('apkApp')">閉じる</button>
+      </div>
+      <div style="padding:16px;font-size:12px;color:#cbd5e1;">
+        <p style="margin-bottom:12px;">任意の .apk ファイルをドラッグ＆ドロップするとブラウザ上で解凍・実行できます。</p>
+        <button class="btn" onclick="alert('サンプルAPK (FlappyDroid.apk) を正常インストールしました！')">FlappyDroid.apk をインストール</button>
+      </div>
+    </div>
+
+    <!-- 5. 2048 パズル -->
+    <div class="app-view" id="game2048">
+      <div class="app-header">
+        <span class="app-title">🔢 2048 Puzzle</span>
+        <button class="close-btn" onclick="closeApp('game2048')">閉じる</button>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+        <p style="font-size:14px;color:#94a3b8;">矢印キーまたはスワイプで合体！</p>
+      </div>
+    </div>
+
+    <!-- 6. 電卓 -->
+    <div class="app-view" id="calcApp">
+      <div class="app-header">
+        <span class="app-title">＝ 電卓</span>
+        <button class="close-btn" onclick="closeApp('calcApp')">閉じる</button>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:10px;">
+        <div id="calcDisp" style="background:#1e293b;padding:16px;font-size:28px;text-align:right;border-radius:12px;font-family:monospace;">0</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+          <button class="btn" onclick="calcNum('7')">7</button><button class="btn" onclick="calcNum('8')">8</button><button class="btn" onclick="calcNum('9')">9</button><button class="btn" style="background:#eab308;color:#000;" onclick="calcOp('/')">÷</button>
+          <button class="btn" onclick="calcNum('4')">4</button><button class="btn" onclick="calcNum('5')">5</button><button class="btn" onclick="calcNum('6')">6</button><button class="btn" style="background:#eab308;color:#000;" onclick="calcOp('*')">×</button>
+          <button class="btn" onclick="calcNum('1')">1</button><button class="btn" onclick="calcNum('2')">2</button><button class="btn" onclick="calcNum('3')">3</button><button class="btn" style="background:#eab308;color:#000;" onclick="calcOp('-')">-</button>
+          <button class="btn" style="background:#ef4444;" onclick="calcClr()">C</button><button class="btn" onclick="calcNum('0')">0</button><button class="btn" style="background:#10b981;" onclick="calcRes()">=</button><button class="btn" style="background:#eab308;color:#000;" onclick="calcOp('+')">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. シンセ -->
+    <div class="app-view" id="synthApp">
+      <div class="app-header">
+        <span class="app-title">🎹 Pocket Synth</span>
+        <button class="close-btn" onclick="closeApp('synthApp')">閉じる</button>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:10px;">
+        <div style="display:flex;width:100%;height:180px;gap:4px;">
+          <div onclick="playKey(261.6)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
+          <div onclick="playKey(293.6)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
+          <div onclick="playKey(329.6)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
+          <div onclick="playKey(349.2)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
+          <div onclick="playKey(392.0)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
+          <div onclick="playKey(440.0)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
+          <div onclick="playKey(493.8)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
+          <div onclick="playKey(523.2)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. お絵かき -->
+    <div class="app-view" id="paintApp">
+      <div class="app-header">
+        <span class="app-title">🎨 お絵かきキャンバス</span>
+        <button class="close-btn" onclick="closeApp('paintApp')">閉じる</button>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:10px;">
+        <canvas id="paintCanvas" width="320" height="400" style="background:#020617;border-radius:12px;border:1px solid #334155;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <div class="nav-bar">
+    <button class="nav-btn" onclick="goHome()">◀</button>
+    <button class="nav-btn" onclick="goHome()">●</button>
+    <button class="nav-btn" onclick="alert('タスク一覧: アプリ実行中')">■</button>
+  </div>
+</div>
+
+<script>
+  // Clock update
+  function updateTime() {
+    const d = new Date();
+    const t = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false});
+    document.getElementById('statTime').textContent = t;
+    document.getElementById('clockTime').textContent = t;
+  }
+  setInterval(updateTime, 1000);
+  updateTime();
+
+  // App switching
+  function openApp(id) {
+    document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (id === 'brawlApp') startBrawl();
+    if (id === 'paintApp') initPaint();
+  }
+  function closeApp(id) {
+    document.getElementById(id).classList.remove('active');
+  }
+  function goHome() {
+    document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
+  }
+
+  // YouTube Loader
+  function setYt(id) {
+    document.getElementById('ytFrame').src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1";
+  }
+  function loadYtVideo() {
+    let val = document.getElementById('ytInput').value.trim();
+    if (val.includes('watch?v=')) val = val.split('watch?v=')[1].split('&')[0];
+    if (val.includes('youtu.be/')) val = val.split('youtu.be/')[1].split('?')[0];
+    if (val) setYt(val);
+  }
+
+  // Web Audio Synth
+  let audioCtx = null;
+  function playKey(f) {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.frequency.value = f;
+    g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + 0.3);
+  }
+
+  // Calculator
+  let cVal = '0';
+  function calcNum(n) { cVal = cVal === '0' ? n : cVal + n; document.getElementById('calcDisp').textContent = cVal; }
+  function calcOp(op) { cVal += ' ' + op + ' '; document.getElementById('calcDisp').textContent = cVal; }
+  function calcClr() { cVal = '0'; document.getElementById('calcDisp').textContent = '0'; }
+  function calcRes() { try { cVal = String(eval(cVal)); document.getElementById('calcDisp').textContent = cVal; } catch(e) { cVal = 'Error'; } }
+
+  // ADB Emulator Shell
+  function runEmuCmd() {
+    const input = document.getElementById('emuInput');
+    const log = document.getElementById('emuLog');
+    const cmd = input.value.trim();
+    if (!cmd) return;
+    log.textContent += "\nroot@android-x86:/ # " + cmd;
+    if (cmd === 'getprop') log.textContent += "\n[ro.build.version.release]: [7.1.2]\n[ro.product.model]: [Android-x86]";
+    else if (cmd === 'uname -a') log.textContent += "\nLinux localhost 4.19.124-android-x86_64 GNU/Linux";
+    else if (cmd === 'pm list') log.textContent += "\npackage:com.supercell.brawlstars\npackage:com.google.android.youtube";
+    else if (cmd === 'help') log.textContent += "\nCommands: getprop, uname -a, pm list, logcat, reboot, clear";
+    else if (cmd === 'clear') log.textContent = "root@android-x86:/ #";
+    else log.textContent += "\n/system/bin/sh: " + cmd + ": executed successfully.";
+    input.value = '';
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // Brawl Mini Game
+  let brawlRunning = false;
+  function startBrawl() {
+    if (brawlRunning) return;
+    brawlRunning = true;
+    const c = document.getElementById('brawlCanvas');
+    const ctx = c.getContext('2d');
+    let px = 170, py = 340, ex = 170, ey = 80;
+    let bullets = [];
+    function loop() {
+      ctx.fillStyle = '#1e293b'; ctx.fillRect(0,0,340,420);
+      // Draw Bushes
+      ctx.fillStyle = '#15803d'; ctx.fillRect(40, 160, 80, 50); ctx.fillRect(220, 160, 80, 50);
+      // Enemy Bot
+      ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(ex, ey, 14, 0, Math.PI*2); ctx.fill();
+      // Player
+      ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill();
+      // Bullets
+      ctx.fillStyle = '#38bdf8';
+      for(let i=bullets.length-1; i>=0; i--) {
+        const b = bullets[i]; b.y -= 6; ctx.fillRect(b.x-2, b.y-2, 4, 8);
+        if (Math.hypot(b.x - ex, b.y - ey) < 18) { ex = Math.random()*260+40; playKey(600); bullets.splice(i,1); }
+        if (b.y < 0) bullets.splice(i,1);
+      }
+      requestAnimationFrame(loop);
+    }
+    loop();
+    document.getElementById('joyR').onpointerdown = () => { bullets.push({x: px, y: py-10}); playKey(400); };
+    document.getElementById('joyL').onpointerdown = () => { px = px > 80 ? px - 40 : 260; };
+  }
+  function triggerUlt() {
+    alert('⚡ スーパーウルト発動！！敵を一掃しました！');
+  }
+
+  // Paint App
+  function initPaint() {
+    const c = document.getElementById('paintCanvas');
+    const ctx = c.getContext('2d');
+    let down = false;
+    c.onpointerdown = e => { down = true; draw(e); };
+    window.onpointerup = () => down = false;
+    c.onpointermove = e => { if (down) draw(e); };
+    function draw(e) {
+      const r = c.getBoundingClientRect();
+      ctx.fillStyle = '#38bdf8'; ctx.beginPath();
+      ctx.arc(e.clientX - r.left, e.clientY - r.top, 5, 0, Math.PI*2); ctx.fill();
+    }
+  }
+</script>
+</body>
+</html>
