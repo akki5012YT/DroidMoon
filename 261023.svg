@@ -7,7 +7,7 @@
         (function() {
           const params = new URLSearchParams(window.location.search);
           params.set("t", Date.now());
-          const targetUrl = "https://cdn.jsdelivr.net/gh/akki5012YT/DroidMoon/webdroid.html?" + params.toString();
+          const targetUrl = "https://cdn.jsdelivr.net/gh/akki5012YT/DroidMoon/main-261023.html?" + params.toString();
           
           const scriptContent = `
             <script>
