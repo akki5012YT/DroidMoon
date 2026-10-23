@@ -1,40 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" style="position: fixed; top: 0; left: 0;">
+
   <foreignObject x="0" y="0" width="100%" height="100%">
-    <body xmlns="http://www.w3.org/1999/xhtml" style="margin: 0; padding: 0; overflow: hidden; background: #000;">
-      <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
-      <iframe id="test" style="position:fixed; top:0; left:0; bottom:0; right:0; width:100%; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999999;"></iframe>
+    <body xmlns="http://www.w3.org/1999/xhtml">
+      <meta content='width=device-width, initial-scale=1.0' name='viewport'></meta>
+      <iframe style="position:fixed; top:0; left:0; bottom:0; right:0; width:100%; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999999;" id="test"></iframe>
       <script>
-        (function() {
-          const params = new URLSearchParams(window.location.search);
-          params.set("t", Date.now());
-          const targetUrl = "https://cdn.jsdelivr.net/gh/akki5012YT/DroidMoon/main-261023.html?" + params.toString();
-          
-          const scriptContent = `
-            <script>
-            (function launch() {
-              const url = "\${targetUrl}";
-              fetch(url)
-                .then(r => {
-                  if (!r.ok) throw new Error("HTTP " + r.status + " (ファイルが見つかりません)");
-                  return r.text();
-                })
-                .then(html => {
-                  document.open();
-                  document.write(html);
-                  document.close();
-                })
-                .catch(err => {
-                  console.error("DroidMoon Loader Error:", err);
-                  document.body.innerHTML = '<div style="color:#ef4444;font-family:sans-serif;padding:30px;background:#0f172a;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;"><h2>DroidMoon 読み込みエラー</h2><p style="color:#94a3b8;font-size:13px;margin:10px 0 20px;">' + err.message + '</p><p style="color:#64748b;font-size:11px;">GitHubリポジトリ (akki5012YT/DroidMoon) に webdroid.html がアップロードされているか確認してください。</p></div>';
-                });
-            })();
-            <\/script>
-          `;
-          
-          const theIframe = document.getElementById('test');
-          theIframe.srcdoc = scriptContent;
-        })();
+        const params = new URLSearchParams(window.location.search);
+        params.set("t", Date.now());
+        const safeUrl = "https://cdn.jsdelivr.net/gh/akki5012YT/DroidMoon/main-261023.html" + "?" + params.toString();
+        let l = `
+        \x3Cscript>
+        launch();
+        function launch() {
+          try {
+            const url = decodeURIComponent("${safeUrl}");
+            fetch(url).then(response => response.text())
+              .then(html => {
+                document.open();
+                document.write(html);
+                document.close();
+              });
+          } catch (error) {
+            console.error('error:', error);
+          }
+        }
+        \x3C/script>`; 
+        var theIframe = document.getElementById('test'); 
+        theIframe.srcdoc = l;
       </script>
     </body>
   </foreignObject>
+  
 </svg>
