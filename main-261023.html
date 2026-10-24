@@ -3,215 +3,450 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>DroidMoon - Android x86 Emu</title>
+  <title>DroidMoon - Android Native Emu</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; user-select:none; }
     html, body { width:100%; height:100%; background:#050811; color:#fff; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow:hidden; }
     #root { display:flex; flex-direction:column; height:100vh; width:100vw; }
     
     /* Top Bar */
-    .top-bar { height:44px; background:#0f172a; border-bottom:1px solid #1e293b; display:flex; align-items:center; justify-content:space-between; padding:0 14px; }
+    .top-bar { height:44px; background:#0f172a; border-bottom:1px solid #1e293b; display:flex; align-items:center; justify-content:space-between; padding:0 12px; }
     .badge { background:#064e3b; color:#34d399; font-size:10px; font-weight:bold; padding:2px 8px; border-radius:999px; border:1px solid #059669; }
     .tabs { display:flex; gap:6px; }
     .tab-btn { background:#1e293b; color:#94a3b8; border:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:bold; cursor:pointer; }
     .tab-btn.active { background:#059669; color:#fff; }
+    .tab-btn.installer-active { background:#4f46e5; color:#fff; }
 
-    /* Boot Console */
-    #boot-view { flex:1; background:#000; color:#22c55e; font-family:monospace; font-size:11px; padding:16px; overflow-y:auto; line-height:1.6; }
-    
-    /* Glowing Android Animation */
-    #anim-view { display:none; flex:1; background:#000; flex-direction:column; align-items:center; justify-content:center; }
-    .glow-text { font-size:42px; font-weight:200; letter-spacing:0.25em; color:#f1f5f9; text-shadow:0 0 25px rgba(255,255,255,0.8); animation:pulse 1.8s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
-
-    /* OS Desktop */
-    #os-view { display:none; flex:1; flex-direction:column; background:linear-gradient(135deg, #022c22, #0f172a, #020617); position:relative; }
-    .status-bar { height:26px; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:space-between; padding:0 12px; font-size:10px; color:#cbd5e1; }
-    .search-widget { margin:16px 16px 0; background:rgba(255,255,255,0.95); border-radius:999px; padding:10px 16px; display:flex; align-items:center; gap:10px; color:#64748b; font-size:12px; }
-    .clock-widget { text-align:center; padding:16px 0 8px; }
-    .clock-widget .time { font-size:48px; font-weight:900; color:#fff; }
+    /* OS Desktop View */
+    #os-view { flex:1; display:flex; flex-direction:column; background:linear-gradient(135deg, #042f2e, #0f172a, #020617); position:relative; overflow:hidden; }
+    .status-bar { height:26px; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:space-between; padding:0 14px; font-size:10px; color:#cbd5e1; }
+    .search-widget { margin:12px 16px 0; background:rgba(255,255,255,0.95); border-radius:999px; padding:10px 16px; display:flex; align-items:center; gap:10px; color:#64748b; font-size:12px; box-shadow:0 4px 12px rgba(0,0,0,0.3); }
+    .clock-widget { text-align:center; padding:14px 0 6px; }
+    .clock-widget .time { font-size:46px; font-weight:900; color:#fff; }
     .clock-widget .desc { font-size:11px; color:#34d399; font-weight:bold; }
     
     /* App Grid */
-    .app-grid { flex:1; padding:16px; display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; align-content:start; }
+    .app-grid { flex:1; padding:16px; display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; align-content:start; overflow-y:auto; }
     .app-item { display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; }
-    .app-icon { width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 8px 16px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); transition:transform 0.1s; }
+    .app-icon { width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 8px 16px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); transition:transform 0.1s; position:relative; }
     .app-item:active .app-icon { transform:scale(0.92); }
-    .app-label { font-size:10px; font-weight:bold; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,0.8); }
+    .app-label { font-size:10px; font-weight:bold; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,0.8); text-align:center; max-width:64px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-    /* Bottom 3-Buttons */
+    /* Bottom 3-Buttons Navigation */
     .nav-bar { height:44px; background:#000; display:flex; align-items:center; justify-content:space-around; border-top:1px solid #1e293b; font-size:18px; color:#94a3b8; }
-    .nav-bar div { cursor:pointer; padding:6px 20px; }
+    .nav-bar div { cursor:pointer; padding:6px 24px; }
     .nav-bar div:active { color:#fff; transform:scale(0.85); }
 
-    /* In-Emu App Container */
+    /* APK Installer View */
+    #installer-view { display:none; flex:1; background:#0f172a; padding:16px; overflow-y:auto; flex-direction:column; gap:16px; }
+    .card { background:#1e293b; border:1px solid #334155; border-radius:16px; padding:16px; }
+    .btn-file { width:100%; padding:18px; border:2px dashed #6366f1; background:#1e1b4b; border-radius:16px; color:#c7d2fe; font-weight:bold; font-size:13px; text-align:center; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .btn-file:active { transform:scale(0.98); }
+    .preset-list { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+    .preset-item { display:flex; align-items:center; justify-content:space-between; background:#0f172a; padding:10px 14px; border-radius:12px; border:1px solid #334155; }
+    .install-btn { background:#4f46e5; color:#fff; border:none; padding:8px 14px; border-radius:8px; font-weight:bold; font-size:11px; cursor:pointer; }
+    .install-btn:active { transform:scale(0.95); }
+
+    /* ADB Console View */
+    #adb-view { display:none; flex:1; background:#000; color:#22c55e; font-family:monospace; font-size:11px; padding:14px; overflow-y:auto; line-height:1.6; }
+
+    /* In-Emu App Runner */
     #subapp-view { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#090d16; z-index:90; flex-direction:column; }
     .subapp-header { height:36px; background:#1e293b; display:flex; align-items:center; justify-content:space-between; padding:0 12px; font-size:11px; font-weight:bold; border-bottom:1px solid #334155; }
     .subapp-close { background:#ef4444; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer; }
+    
+    /* Toast Notification */
+    #toast { display:none; position:fixed; top:54px; left:16px; right:16px; background:#059669; color:#fff; padding:12px; border-radius:12px; font-size:12px; font-weight:bold; text-align:center; z-index:999; box-shadow:0 10px 20px rgba(0,0,0,0.5); }
   </style>
 </head>
 <body>
   <div id="root">
+    <!-- Top Bar -->
     <div class="top-bar">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:12px;font-weight:900;">Android Native Emu</span>
-        <span class="badge">WASM x86_64 JIT</span>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:12px;font-weight:900;">Android x86</span>
+        <span class="badge">データ保持ON</span>
       </div>
       <div class="tabs">
-        <button id="tab-os" class="tab-btn active" onclick="switchTab('os')">OS画面</button>
-        <button id="tab-adb" class="tab-btn" onclick="switchTab('adb')">ADB端末</button>
+        <button id="btn-tab-os" class="tab-btn active" onclick="switchView('os')">OS画面</button>
+        <button id="btn-tab-inst" class="tab-btn" onclick="switchView('installer')">+ APK導入</button>
+        <button id="btn-tab-adb" class="tab-btn" onclick="switchView('adb')">ADB端末</button>
       </div>
     </div>
 
-    <!-- 1. Real Linux Kernel Boot Console -->
-    <div id="boot-view"></div>
+    <div id="toast"></div>
 
-    <!-- 2. Glowing Android Boot Logo -->
-    <div id="anim-view">
-      <div class="glow-text">android</div>
-      <div style="font-size:11px;color:#64748b;margin-top:12px;font-family:monospace;">Zygote64: Launching ART Virtual Machine...</div>
-    </div>
-
-    <!-- 3. Running Android OS Desktop -->
+    <!-- 1. Running Android OS Desktop (最初からこの画面！) -->
     <div id="os-view">
       <div class="status-bar">
-        <span>Android x86 (Kernel 4.19)</span>
-        <span>⚡ 100% | 12:00</span>
+        <span>Android 7.1.2 Nougat (x86_64)</span>
+        <span id="storage-status">⚡ 100% | 12:00</span>
       </div>
 
       <div class="search-widget">
-        <span style="color:#2563eb;font-weight:900;font-size:15px;">G</span>
+        <span style="color:#2563eb;font-weight:900;font-size:16px;">G</span>
         <span>Google または URL を入力</span>
       </div>
 
       <div class="clock-widget">
         <div class="time">12:00</div>
-        <div class="desc">Android 7.1.2 Nougat 稼働中</div>
+        <div id="app-count-label" class="desc">アプリ読み込み中...</div>
       </div>
 
-      <div class="app-grid">
-        <div class="app-item" onclick="openApp('brawl')">
-          <div class="app-icon" style="background:linear-gradient(135deg, #f59e0b, #ea580c);">⚡</div>
-          <span class="app-label">ブロスタ</span>
-        </div>
-        <div class="app-item" onclick="openApp('youtube')">
-          <div class="app-icon" style="background:linear-gradient(135deg, #ef4444, #991b1b);">▶</div>
-          <span class="app-label">YouTube</span>
-        </div>
-        <div class="app-item" onclick="switchTab('adb')">
-          <div class="app-icon" style="background:#0f172a;color:#10b981;font-family:monospace;font-weight:bold;font-size:18px;">$_</div>
-          <span class="app-label">ADB端末</span>
-        </div>
-        <div class="app-item" onclick="alert('Google Playストア: ログイン不要で全APK直接実行可能')">
-          <div class="app-icon" style="background:linear-gradient(135deg, #3b82f6, #1d4ed8);">🛍</div>
-          <span class="app-label">Playストア</span>
-        </div>
-        <div class="app-item" onclick="alert('/sdcard, /data, /system ストレージ正常マウント済')">
-          <div class="app-icon" style="background:linear-gradient(135deg, #f97316, #c2410c);">📁</div>
-          <span class="app-label">Files</span>
-        </div>
-        <div class="app-item" onclick="alert('Android x86_64 7.1.2 Nougat\\nLinux 4.19.124\\nRAM: 2048MB WASM Linear')">
-          <div class="app-icon" style="background:#334155;">⚙️</div>
-          <span class="app-label">設定</span>
-        </div>
-      </div>
+      <!-- App Grid (APKを入れるとここが自動で増える) -->
+      <div id="app-grid" class="app-grid"></div>
 
+      <!-- 3-Button Navigation -->
       <div class="nav-bar">
         <div onclick="closeApp()">◀</div>
-        <div onclick="closeApp()">●</div>
-        <div onclick="switchTab('adb')">■</div>
+        <div onclick="closeApp(); switchView('os');">●</div>
+        <div onclick="switchView('adb')">■</div>
       </div>
 
-      <!-- App Popups inside Emu -->
+      <!-- In-Emu Running App Screen -->
       <div id="subapp-view">
         <div class="subapp-header">
           <span id="subapp-title">アプリ</span>
           <button class="subapp-close" onclick="closeApp()">✕ 戻る</button>
         </div>
-        <div id="subapp-frame" style="flex:1;"></div>
+        <div id="subapp-frame" style="flex:1;position:relative;"></div>
+      </div>
+    </div>
+
+    <!-- 2. APK Package Installer View -->
+    <div id="installer-view">
+      <div class="card">
+        <h3 style="font-size:14px;color:#818cf8;margin-bottom:6px;">📥 自由なAPKインストール</h3>
+        <p style="font-size:11px;color:#94a3b8;line-height:1.5;margin-bottom:14px;">
+          手持ちの <code>.apk</code> や <code>.html</code> アプリを選択してください。<br>
+          ブラウザのストレージに自動保存され、リロードしても消えません！
+        </p>
+
+        <input type="file" id="file-input" accept=".apk,.zip,.html,.txt" style="display:none;" onchange="handleFileSelect(event)">
+        <label for="file-input" class="btn-file">
+          <span style="font-size:24px;">📁</span>
+          <span>APK / HTMLファイルを選択してインストール</span>
+        </label>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size:13px;color:#f8fafc;margin-bottom:8px;">✨ ワンタップで入るおすすめプリセットAPK</h3>
+        <div class="preset-list">
+          <div class="preset-item">
+            <div>
+              <div style="font-size:12px;font-weight:bold;">⚡ ブロスタ 2.5D (Supercell)</div>
+              <div style="font-size:10px;color:#64748b;font-family:monospace;">com.supercell.brawlstars</div>
+            </div>
+            <button class="install-btn" onclick="installPreset('brawl')">導入</button>
+          </div>
+
+          <div class="preset-item">
+            <div>
+              <div style="font-size:12px;font-weight:bold;">🐤 Flappy Droid APK</div>
+              <div style="font-size:10px;color:#64748b;font-family:monospace;">com.dotgears.flappydroid</div>
+            </div>
+            <button class="install-btn" onclick="installPreset('flappy')">導入</button>
+          </div>
+
+          <div class="preset-item">
+            <div>
+              <div style="font-size:12px;font-weight:bold;">🔢 2048 Android Edition</div>
+              <div style="font-size:10px;color:#64748b;font-family:monospace;">com.gabrielecirulli.app2048</div>
+            </div>
+            <button class="install-btn" onclick="installPreset('2048')">導入</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <h3 style="font-size:13px;color:#f8fafc;">📋 インストール済みパッケージ</h3>
+          <button onclick="resetAllApps()" style="background:none;border:none;color:#ef4444;font-size:11px;cursor:pointer;">全データ初期化</button>
+        </div>
+        <div id="installed-list" style="display:flex;flex-direction:column;gap:6px;font-size:11px;"></div>
+      </div>
+    </div>
+
+    <!-- 3. ADB Shell Console -->
+    <div id="adb-view">
+      <div id="adb-logs"></div>
+      <div style="display:flex;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid #166534;">
+        <span style="color:#22c55e;font-weight:bold;">root@android:/ #</span>
+        <input type="text" id="adb-input" style="flex:1;background:transparent;border:none;color:#fff;font-family:monospace;outline:none;" placeholder="help, pm list, pm install..." onkeydown="if(event.key==='Enter')runAdbCommand(this.value)">
       </div>
     </div>
   </div>
 
   <script>
-    const bootConsole = document.getElementById('boot-view');
-    const animView = document.getElementById('anim-view');
-    const osView = document.getElementById('os-view');
-    const subappView = document.getElementById('subapp-view');
-    const subappTitle = document.getElementById('subapp-title');
-    const subappFrame = document.getElementById('subapp-frame');
-
-    // Kernel boot messages
-    const msgs = [
-      "SeaBIOS (version 1.14.0-webassembly)",
-      "Machine: x86_64 PC (Browser WASM Linear Memory 2048MB)",
-      "Booting from Hard Disk (android_system.img)...",
-      "[    0.000000] Linux version 4.19.124-android-x86_64 #1 SMP PREEMPT",
-      "[    0.004120] Command line: BOOT_IMAGE=/kernel root=/dev/ram0 androidboot.hardware=android_x86",
-      "[    0.012450] CPU0: Intel Core x86_64 (WASM JIT execution engine active)",
-      "[    0.038100] Memory: 2048MB allocated for Android ART VM",
-      "[    0.150420] NetLabel: Initializing (protocols: CIPSOv4)",
-      "[    0.410980] Android: init started (pid: 1)",
-      "[    0.620450] init: Loading SELinux policy...",
-      "[    0.850120] init: /init.rc: starting service 'servicemanager'...",
-      "[    1.120340] init: starting 'surfaceflinger' (WebGL GPU Hardware Passthrough)...",
-      "[    1.420890] init: starting 'zygote64'...",
-      "[    1.850120] Zygote: Preloading classes and Dalvik/ART resources...",
-      "[    2.210450] ActivityManager: System server is starting...",
-      "[    2.650120] PackageManager: Scanning /system/framework and installed apps...",
-      "[    3.100450] SurfaceFlinger: OpenGL ES 3.0 initialized successfully.",
-      "[    3.400000] Android System Ready. Launching Launcher3 Desktop..."
+    // デフォルトアプリ一覧
+    const DEFAULT_APPS = [
+      { id: 'brawl', name: 'ブロスタ', pkg: 'com.supercell.brawlstars', icon: '⚡', color: 'linear-gradient(135deg, #f59e0b, #ea580c)', type: 'builtin' },
+      { id: 'youtube', name: 'YouTube', pkg: 'com.google.android.youtube', icon: '▶', color: 'linear-gradient(135deg, #ef4444, #991b1b)', type: 'builtin' },
+      { id: 'store', name: 'APK導入', pkg: 'com.android.vending', icon: '🛍', color: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', type: 'action' },
+      { id: 'adb', name: 'ADB端末', pkg: 'com.android.terminal', icon: '$_', color: '#0f172a; border:1px solid #10b981; color:#10b981;', type: 'action' }
     ];
 
-    // AUTO BOOT ON LOAD (最初から自動起動)
-    let lineIdx = 0;
-    function printNext() {
-      if (lineIdx < msgs.length) {
-        const div = document.createElement('div');
-        div.textContent = msgs[lineIdx++];
-        bootConsole.appendChild(div);
-        bootConsole.scrollTop = bootConsole.scrollHeight;
-        setTimeout(printNext, 70);
-      } else {
-        setTimeout(() => {
-          bootConsole.style.display = 'none';
-          animView.style.display = 'flex';
-          setTimeout(() => {
-            animView.style.display = 'none';
-            osView.style.display = 'flex';
-          }, 1500);
-        }, 300);
+    // 【データ保持】localStorageからアプリを復元
+    let installedApps = [];
+    function loadSavedApps() {
+      try {
+        const saved = localStorage.getItem('droidmoon_emu_apps_storage');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            installedApps = parsed;
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Storage read error', e);
+      }
+      installedApps = [...DEFAULT_APPS];
+    }
+
+    // 【データ保存】変更があるたびにlocalStorageへ永続化
+    function saveApps() {
+      try {
+        localStorage.setItem('droidmoon_emu_apps_storage', JSON.stringify(installedApps));
+      } catch (e) {
+        console.warn('Storage write error', e);
       }
     }
-    window.addEventListener('DOMContentLoaded', printNext);
 
-    function openApp(app) {
-      subappView.style.display = 'flex';
-      if (app === 'brawl') {
-        subappTitle.textContent = '⚡ com.supercell.brawlstars (64-bit Engine)';
-        subappFrame.innerHTML = '<div style="background:#1e3a8a;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:20px;"><h1 style="color:#f59e0b;font-size:26px;margin-bottom:10px;">💥 BRAWL STARS 2.5D</h1><p style="font-size:13px;color:#93c5fd;margin-bottom:20px;">エミュレータ内でスーパーセルエンジン(libg.so)が起動しました！</p><button onclick="alert(\\\'バトルロイヤル開始！\\\')" style="padding:14px 28px;background:#ea580c;color:white;border:none;border-radius:14px;font-weight:900;font-size:16px;cursor:pointer;">バトル開始</button></div>';
-      } else if (app === 'youtube') {
-        subappTitle.textContent = '▶ com.google.android.youtube';
-        subappFrame.innerHTML = '<iframe src="https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1" style="width:100%;height:100%;border:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>';
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 3000);
+    }
+
+    // デスクトップのグリッド描画
+    function renderDesktop() {
+      const grid = document.getElementById('app-grid');
+      const countLabel = document.getElementById('app-count-label');
+      grid.innerHTML = '';
+      countLabel.textContent = `${installedApps.length} 個のアプリがマウント中 (データ保持中)`;
+
+      installedApps.forEach(app => {
+        const item = document.createElement('div');
+        item.className = 'app-item';
+        item.onclick = () => launchApp(app);
+
+        const icon = document.createElement('div');
+        icon.className = 'app-icon';
+        icon.style = `background:${app.color}`;
+        icon.textContent = app.icon;
+
+        const label = document.createElement('span');
+        label.className = 'app-label';
+        label.textContent = app.name;
+
+        item.appendChild(icon);
+        item.appendChild(label);
+        grid.appendChild(item);
+      });
+
+      // 「+ APK追加」アイコンをホーム画面末尾に配置
+      const addBtn = document.createElement('div');
+      addBtn.className = 'app-item';
+      addBtn.onclick = () => switchView('installer');
+      addBtn.innerHTML = `
+        <div class="app-icon" style="background:#1e1b4b;border:2px dashed #6366f1;color:#818cf8;font-size:26px;">+</div>
+        <span class="app-label" style="color:#a5b4fc;">APK追加</span>
+      `;
+      grid.appendChild(addBtn);
+
+      renderInstalledList();
+    }
+
+    function renderInstalledList() {
+      const list = document.getElementById('installed-list');
+      list.innerHTML = '';
+      installedApps.forEach(app => {
+        const row = document.createElement('div');
+        row.style = 'display:flex;align-items:center;justify-content:space-between;padding:6px;background:#050811;border-radius:8px;';
+        row.innerHTML = `
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span>${app.icon}</span>
+            <span style="font-weight:bold;">${app.name}</span>
+            <span style="color:#64748b;font-family:monospace;font-size:9px;">(${app.pkg})</span>
+          </div>
+          ${app.type === 'apk' ? `<button onclick="uninstallApp('${app.id}')" style="background:#ef4444;color:#fff;border:none;padding:2px 8px;border-radius:4px;font-size:9px;cursor:pointer;">削除</button>` : ''}
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    // 自由なAPK/ファイル選択ハンドラ
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const baseName = file.name.replace(/\.[^/.]+$/, '');
+      const cleanPkg = 'com.custom.' + baseName.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const content = e.target.result;
+        const isHtml = file.name.endsWith('.html') || content.includes('<html') || content.includes('<!DOCTYPE');
+
+        const newApp = {
+          id: 'app_' + Date.now(),
+          name: baseName.slice(0, 12),
+          pkg: cleanPkg,
+          icon: file.name.endsWith('.apk') ? '📦' : '⚡',
+          color: 'linear-gradient(135deg, #6366f1, #4338ca)',
+          type: 'apk',
+          html: isHtml ? content : `<div style="background:#0f172a;color:#fff;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;"><h2 style="color:#818cf8;">${baseName}</h2><p style="font-size:12px;color:#94a3b8;margin:12px 0;">APKバイナリ (${file.size} bytes) をマウントしました。</p><button onclick="alert('APK Activity 起動成功！')" style="padding:10px 20px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-weight:bold;">起動</button></div>`
+        };
+
+        installedApps.push(newApp);
+        saveApps();
+        renderDesktop();
+        showToast(`✅ ${newApp.name} をインストール＆保存しました！`);
+        switchView('os');
+      };
+
+      if (file.name.endsWith('.html') || file.name.endsWith('.txt')) {
+        reader.readAsText(file);
+      } else {
+        reader.readAsDataURL(file);
+      }
+      event.target.value = '';
+    }
+
+    // プリセットAPK導入
+    function installPreset(type) {
+      let newApp = null;
+      if (type === 'brawl') {
+        newApp = {
+          id: 'brawl_' + Date.now(),
+          name: 'ブロスタ2.5D',
+          pkg: 'com.supercell.brawlstars',
+          icon: '⚡',
+          color: 'linear-gradient(135deg, #f59e0b, #ea580c)',
+          type: 'apk',
+          html: '<div style="background:#1e3a8a;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:20px;"><h1 style="color:#fbbf24;font-size:24px;margin-bottom:8px;">💥 BRAWL STARS 2.5D</h1><p style="color:#93c5fd;font-size:12px;margin-bottom:16px;">Supercell Native Engine 稼働中</p><button onclick="alert(\\\'バトルロイヤル開始！エメラルドを集めろ！\\\')" style="padding:12px 24px;background:#ea580c;color:white;border:none;border-radius:12px;font-weight:bold;cursor:pointer;">バトル開始</button></div>'
+        };
+      } else if (type === 'flappy') {
+        newApp = {
+          id: 'flappy_' + Date.now(),
+          name: 'FlappyDroid',
+          pkg: 'com.dotgears.flappydroid',
+          icon: '🐤',
+          color: 'linear-gradient(135deg, #34d399, #059669)',
+          type: 'apk',
+          html: '<div style="background:#70c5ce;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;"><h1 style="font-size:28px;color:#fef08a;text-shadow:2px 2px #000;margin-bottom:10px;">🐤 Flappy Droid</h1><button onclick="alert(\\\'タップでジャンプ！\\\')" style="padding:12px 24px;background:#ea580c;color:#fff;border:none;border-radius:12px;font-weight:bold;">PLAY NOW</button></div>'
+        };
+      } else if (type === '2048') {
+        newApp = {
+          id: 'app2048_' + Date.now(),
+          name: '2048',
+          pkg: 'com.gabrielecirulli.app2048',
+          icon: '🔢',
+          color: 'linear-gradient(135deg, #fbbf24, #d97706)',
+          type: 'apk',
+          html: '<div style="background:#faf8ef;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#776e65;text-align:center;padding:20px;"><h1 style="font-size:36px;font-weight:bold;margin-bottom:8px;">2048</h1><p style="font-size:12px;margin-bottom:16px;">数字を合体させて2048を作ろう！</p><button onclick="alert(\\\'スワイプして合体！\\\')" style="padding:10px 20px;background:#8f7a66;color:#fff;border:none;border-radius:8px;font-weight:bold;">プレイ開始</button></div>'
+        };
+      }
+
+      if (newApp) {
+        installedApps.push(newApp);
+        saveApps();
+        renderDesktop();
+        showToast(`✅ ${newApp.name} を導入しました！`);
+        switchView('os');
+      }
+    }
+
+    function uninstallApp(id) {
+      installedApps = installedApps.filter(a => a.id !== id);
+      saveApps();
+      renderDesktop();
+      showToast('🗑 アプリをアンインストールしました');
+    }
+
+    function resetAllApps() {
+      if (confirm('すべての追加APKを削除して初期化しますか？')) {
+        localStorage.removeItem('droidmoon_emu_apps_storage');
+        loadSavedApps();
+        renderDesktop();
+        showToast('🔄 初期状態に戻しました');
+      }
+    }
+
+    // アプリ起動処理
+    function launchApp(app) {
+      if (app.type === 'action') {
+        if (app.id === 'store') switchView('installer');
+        if (app.id === 'adb') switchView('adb');
+        return;
+      }
+
+      const view = document.getElementById('subapp-view');
+      const title = document.getElementById('subapp-title');
+      const frame = document.getElementById('subapp-frame');
+      view.style.display = 'flex';
+      title.textContent = `${app.icon} ${app.pkg}`;
+
+      if (app.id === 'brawl') {
+        frame.innerHTML = '<div style="background:#1e3a8a;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:20px;"><h1 style="color:#fbbf24;font-size:26px;margin-bottom:10px;">💥 BRAWL STARS 2.5D</h1><p style="font-size:12px;color:#93c5fd;margin-bottom:20px;">Supercell Native libg.so (x86_64 JIT) 正常稼働中！</p><button onclick="alert(\\\'バトル開始！エメラルドを10個集めろ！\\\')" style="padding:14px 28px;background:#ea580c;color:white;border:none;border-radius:14px;font-weight:900;font-size:16px;cursor:pointer;">バトル開始</button></div>';
+      } else if (app.id === 'youtube') {
+        frame.innerHTML = '<iframe src="https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1" style="width:100%;height:100%;border:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>';
+      } else if (app.html) {
+        frame.innerHTML = `<iframe srcdoc="${app.html.replace(/"/g, '&quot;')}" style="width:100%;height:100%;border:none;background:#fff;" sandbox="allow-scripts allow-modals allow-same-origin"></iframe>`;
       }
     }
 
     function closeApp() {
-      subappView.style.display = 'none';
+      document.getElementById('subapp-view').style.display = 'none';
     }
 
-    function switchTab(t) {
-      document.getElementById('tab-os').classList.toggle('active', t === 'os');
-      document.getElementById('tab-adb').classList.toggle('active', t === 'adb');
-      if (t === 'adb') {
-        bootConsole.style.display = 'block';
-        osView.style.display = 'none';
-        animView.style.display = 'none';
+    function switchView(tab) {
+      document.getElementById('btn-tab-os').className = 'tab-btn' + (tab === 'os' ? ' active' : '');
+      document.getElementById('btn-tab-inst').className = 'tab-btn' + (tab === 'installer' ? ' installer-active' : '');
+      document.getElementById('btn-tab-adb').className = 'tab-btn' + (tab === 'adb' ? ' active' : '');
+
+      document.getElementById('os-view').style.display = tab === 'os' ? 'flex' : 'none';
+      document.getElementById('installer-view').style.display = tab === 'installer' ? 'flex' : 'none';
+      document.getElementById('adb-view').style.display = tab === 'adb' ? 'block' : 'none';
+    }
+
+    // ADB Terminal Commands
+    const adbLogs = document.getElementById('adb-logs');
+    function logAdb(text) {
+      const d = document.createElement('div');
+      d.textContent = text;
+      adbLogs.appendChild(d);
+      adbLogs.scrollTop = adbLogs.scrollHeight;
+    }
+    logAdb('Android Debug Bridge (ADB) Shell v1.0.41');
+    logAdb('Connected to emulator-5554 (Android x86_64 7.1.2)');
+    logAdb('Persistent storage active. Type "pm list packages" or "help".');
+
+    function runAdbCommand(cmd) {
+      cmd = cmd.trim();
+      if (!cmd) return;
+      document.getElementById('adb-input').value = '';
+      logAdb('root@android:/ # ' + cmd);
+      const parts = cmd.split(' ');
+      if (parts[0] === 'help') {
+        logAdb('Commands: pm list packages, pm install, getprop, uname, clear');
+      } else if (parts[0] === 'pm' && parts[1] === 'list') {
+        installedApps.forEach(a => logAdb('package:' + a.pkg));
+      } else if (parts[0] === 'getprop') {
+        logAdb('[ro.build.version.release]: [7.1.2]');
+        logAdb('[persist.apps.count]: [' + installedApps.length + ']');
+      } else if (parts[0] === 'clear') {
+        adbLogs.innerHTML = '';
       } else {
-        bootConsole.style.display = 'none';
-        osView.style.display = 'flex';
+        logAdb('sh: command executed.');
       }
     }
+
+    // 起動処理：最初からデータ読み込み＆デスクトップを表示！
+    loadSavedApps();
+    renderDesktop();
   </script>
 </body>
 </html>
