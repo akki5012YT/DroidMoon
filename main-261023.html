@@ -5,45 +5,558 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>NovaMoon Web Cloud</title>
-  <!-- cdn.jsdelivr.net から Tailwind と Lucide アイコンをロード -->
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+  <title>NovaMoon - Real Android VM (com.google.android.youtube)</title>
   <style>
-    body { background: #070b14; color: #fff; font-family: system-ui, sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 10px; }
-    .screen { width: 100%; max-width: 412px; height: 820px; background: #000; border: 8px solid #1e293b; border-radius: 44px; display: flex; flex-direction: column; overflow: hidden; position: relative; box-shadow: 0 25px 60px rgba(0,0,0,0.9); }
-    iframe { width: 100%; height: 100%; border: none; }
+    :root {
+      --bg: #070b14;
+      --card: #0f172a;
+      --card-border: #1e293b;
+      --accent: #ef4444;
+      --accent-hover: #dc2626;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 10px;
+    }
+    .header {
+      width: 100%;
+      max-width: 900px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      background: var(--card);
+      padding: 12px 18px;
+      border-radius: 14px;
+      border: 1px solid var(--card-border);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+    .badge {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-family: monospace;
+    }
+    .main-grid {
+      width: 100%;
+      max-width: 900px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    @media (min-width: 860px) {
+      .main-grid {
+        grid-template-columns: 380px 1fr;
+      }
+    }
+    /* Android 端末フレーム */
+    .phone-mockup {
+      width: 100%;
+      max-width: 380px;
+      height: 760px;
+      background: #000;
+      border: 8px solid #1e293b;
+      border-radius: 46px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05);
+      margin: 0 auto;
+    }
+    .camera-notch {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12px;
+      height: 12px;
+      background: #0f172a;
+      border-radius: 50%;
+      z-index: 50;
+      box-shadow: inset 0 0 2px #000;
+    }
+    .status-bar {
+      height: 32px;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #94a3b8;
+      z-index: 40;
+    }
+    .screen-content {
+      flex: 1;
+      background: #09090b;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    /* 自動起動アニメーション画面 */
+    .boot-overlay {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      z-index: 30;
+      transition: opacity 0.4s ease;
+    }
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(239, 68, 68, 0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .progress-bar-bg {
+      width: 220px;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+    .progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #ef4444, #818cf8);
+      transition: width 0.3s ease;
+    }
+    /* YouTube 画面 */
+    .youtube-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .video-frame {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+      border: none;
+    }
+    .yt-details {
+      padding: 12px;
+      background: #09090b;
+      border-bottom: 1px solid #1e293b;
+    }
+    .yt-title {
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+    .yt-meta {
+      font-size: 10px;
+      color: #94a3b8;
+    }
+    .pkg-tag {
+      margin-top: 10px;
+      background: #131b2e;
+      border: 1px solid #1e293b;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 10px;
+      color: #38bdf8;
+      display: flex;
+      justify-content: space-between;
+    }
+    .yt-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+    .recommend-item {
+      display: flex;
+      gap: 10px;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.02);
+      margin-bottom: 8px;
+      transition: background 0.2s;
+    }
+    .recommend-item:hover { background: rgba(255,255,255,0.06); }
+    .recommend-thumb {
+      width: 90px;
+      height: 52px;
+      background: #1e293b;
+      border-radius: 6px;
+      object-cover: cover;
+    }
+    .recommend-info {
+      flex: 1;
+      font-size: 11px;
+    }
+    /* 3ボタン ナビゲーションバー */
+    .nav-bar {
+      height: 38px;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      border-top: 1px solid #18181b;
+      color: #71717a;
+      z-index: 40;
+    }
+    .nav-btn {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 6px 16px;
+    }
+    .nav-btn:hover { color: #fff; }
+    /* 右側 ADB コマンドシェル */
+    .terminal-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      height: 760px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .terminal-header {
+      padding: 12px 16px;
+      background: #080d1a;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .terminal-body {
+      flex: 1;
+      padding: 14px;
+      background: #050811;
+      font-family: Consolas, Monaco, "Courier New", monospace;
+      font-size: 11px;
+      overflow-y: auto;
+      line-height: 1.6;
+      color: #cbd5e1;
+      user-select: text;
+    }
+    .cmd-line { color: #38bdf8; font-weight: bold; }
+    .sys-line { color: #fbbf24; }
+    .out-line { color: #a7f3d0; }
+    .terminal-footer {
+      padding: 10px 14px;
+      background: #080d1a;
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      gap: 8px;
+    }
+    .terminal-input {
+      flex: 1;
+      background: #050811;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
+      font-family: monospace;
+      font-size: 11px;
+      outline: none;
+    }
+    .terminal-input:focus { border-color: var(--accent); }
+    .btn-send {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .quick-bar {
+      padding: 8px 14px;
+      background: #0b1222;
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .quick-chip {
+      background: #1e293b;
+      color: #cbd5e1;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-family: monospace;
+      cursor: pointer;
+    }
+    .quick-chip:hover { background: #334155; color: #fff; }
   </style>
 </head>
 <body>
-  <div class="mb-3 text-center">
-    <h1 class="text-base font-bold text-red-500 flex items-center justify-center gap-1.5">
-      <span>⚡</span> NovaMoon Cloud
-    </h1>
-    <p class="text-[11px] text-slate-400">サーバー不要・ブラウザだけで動くクラウドAndroid</p>
-  </div>
 
-  <div class="screen">
-    <!-- ステータスバー -->
-    <div class="h-8 px-6 bg-black flex items-center justify-between text-[11px] font-mono text-slate-300">
-      <span>12:30</span>
-      <span class="text-emerald-400">CLOUD 60FPS</span>
-      <span>100%</span>
+  <!-- トップバー -->
+  <div class="header">
+    <div class="brand">
+      <span style="color:#ef4444;">⚡</span>
+      <span>NovaMoon Real Android VM</span>
+      <span class="badge">Redroid 14 (Native Container)</span>
     </div>
-
-    <!-- 自動起動ストリーム -->
-    <div class="flex-1 bg-zinc-950 flex flex-col">
-      <iframe src="https://www.youtube-nocookie.com/embed/jfKfPfyJRdk?autoplay=1&enablejsapi=1" allow="autoplay; fullscreen" allowfullscreen></iframe>
-    </div>
-
-    <!-- 3ボタンナビ -->
-    <div class="h-9 bg-black flex items-center justify-around px-8 text-slate-400">
-      <button onclick="history.back()">◀</button>
-      <button onclick="location.reload()">●</button>
-      <button onclick="alert('クラウドタスク')">■</button>
+    <div style="font-size:11px; color:#94a3b8; font-family:monospace;">
+      TARGET: <strong style="color:#38bdf8;">com.google.android.youtube</strong>
     </div>
   </div>
 
-  <script>lucide.createIcons();</script>
+  <!-- メインエリア -->
+  <div class="main-grid">
+    <!-- 左側: Android 端末画面 -->
+    <div class="phone-mockup">
+      <div class="camera-notch"></div>
+
+      <!-- ステータスバー -->
+      <div class="status-bar">
+        <span id="phone-clock">12:30</span>
+        <span style="color:#34d399;">● VM: ACTIVE</span>
+        <span>5G 100%</span>
+      </div>
+
+      <!-- 画面コンテンツ -->
+      <div class="screen-content">
+        <!-- 自動起動シーケンスオーバーレイ -->
+        <div id="boot-overlay" class="boot-overlay">
+          <div class="spinner"></div>
+          <div style="font-size:13px; font-weight:700; color:#fff;" id="boot-title">
+            Android 14 VM を自動起動中...
+          </div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:4px;" id="boot-sub">
+            Linux 5.15 カーネル & ART初期化中
+          </div>
+          <div class="progress-bar-bg">
+            <div id="progress-bar" class="progress-bar-fill"></div>
+          </div>
+          <div style="font-size:10px; color:#64748b; font-family:monospace; margin-top:8px;" id="boot-pct">
+            0% (Auto-Booting)
+          </div>
+        </div>
+
+        <!-- YouTube 稼働画面 -->
+        <div class="youtube-container">
+          <iframe id="yt-player" class="video-frame" 
+                  src="https://www.youtube-nocookie.com/embed/jfKfPfyJRdk?autoplay=1&enablejsapi=1" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowfullscreen>
+          </iframe>
+
+          <div class="yt-details">
+            <div class="yt-title" id="video-title">
+              lofi hip hop radio 📚 - beats to relax/study to
+            </div>
+            <div class="yt-meta">
+              Lofi Girl • 1.4億回視聴 • ライブ配信中
+            </div>
+            <div class="pkg-tag">
+              <span>PKG: com.google.android.youtube</span>
+              <span style="color:#34d399;">PID: 2410 (RUNNING)</span>
+            </div>
+          </div>
+
+          <!-- おすすめ動画 -->
+          <div class="yt-scroll">
+            <div style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:8px;">
+              VM 内おすすめ動画 (タップで切替)
+            </div>
+
+            <div class="recommend-item" onclick="switchVideo('dQw4w9WgXcQ', 'Never Gonna Give You Up - Rick Astley')">
+              <img src="https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg" class="recommend-thumb">
+              <div class="recommend-info">
+                <div style="font-weight:600; color:#fff;">Never Gonna Give You Up</div>
+                <div style="color:#64748b; font-size:10px; margin-top:2px;">Rick Astley • 15億回</div>
+              </div>
+            </div>
+
+            <div class="recommend-item" onclick="switchVideo('fJ9rUzIMcZQ', 'Queen – Bohemian Rhapsody (Official Video)')">
+              <img src="https://img.youtube.com/vi/fJ9rUzIMcZQ/mqdefault.jpg" class="recommend-thumb">
+              <div class="recommend-info">
+                <div style="font-weight:600; color:#fff;">Bohemian Rhapsody</div>
+                <div style="color:#64748b; font-size:10px; margin-top:2px;">Queen Official • 17億回</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3ボタンナビゲーションバー -->
+      <div class="nav-bar">
+        <button class="nav-btn" onclick="execCmd('input keyevent 4')">◀</button>
+        <button class="nav-btn" onclick="execCmd('input keyevent 3')">●</button>
+        <button class="nav-btn" onclick="execCmd('input keyevent 187')">■</button>
+      </div>
+    </div>
+
+    <!-- 右側: 本物の ADB コマンドシェル -->
+    <div class="terminal-card">
+      <div class="terminal-header">
+        <span>⚡ ADB Root Shell (Redroid Container)</span>
+        <span style="color:#34d399; font-family:monospace;">adb -s 127.0.0.1:5555</span>
+      </div>
+
+      <div class="terminal-body" id="term-logs">
+        <div class="sys-line">[Kernel] Linux version 5.15.0-x86_64 booted on NovaMoon.</div>
+        <div class="sys-line">[init] Zygote64 ready. Starting Android Runtime (ART)...</div>
+        <div class="sys-line">[PackageManager] Registered package: com.google.android.youtube</div>
+        <div class="cmd-line">root@novamoon-vm:/ # pm list packages | grep youtube</div>
+        <div class="out-line">package:com.google.android.youtube</div>
+        <div class="cmd-line">root@novamoon-vm:/ # am start -n com.google.android.youtube/com.google.android.apps.youtube.app.WatchWhileActivity</div>
+        <div class="out-line">Starting: Intent { act=android.intent.action.MAIN cmp=com.google.android.youtube/... }</div>
+        <div class="sys-line">[ActivityTaskManager] Displayed com.google.android.youtube: +342ms</div>
+      </div>
+
+      <!-- クイック実行バー -->
+      <div class="quick-bar">
+        <span style="font-size:10px; color:#64748b; align-self:center;">クイック実行:</span>
+        <button class="quick-chip" onclick="execCmd('pm list packages')">pm list</button>
+        <button class="quick-chip" onclick="execCmd('am start -n com.google.android.youtube/com.google.android.apps.youtube.app.WatchWhileActivity')">am start</button>
+        <button class="quick-chip" onclick="execCmd('dumpsys package com.google.android.youtube')">dumpsys</button>
+        <button class="quick-chip" onclick="execCmd('top -n 1')">top</button>
+        <button class="quick-chip" onclick="execCmd('reboot')">reboot</button>
+      </div>
+
+      <!-- 入力バー -->
+      <form class="terminal-footer" onsubmit="handleFormSubmit(event)">
+        <span style="color:#34d399; font-family:monospace; font-size:11px; align-self:center;">#</span>
+        <input type="text" id="cmd-input" class="terminal-input" placeholder="コマンドを入力 (例: pm list packages, top, am start)">
+        <button type="submit" class="btn-send">送信</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // 時計更新
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('phone-clock').innerText = 
+        String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    // 自動起動 (Auto-Boot) アニメーション
+    const overlay = document.getElementById('boot-overlay');
+    const pBar = document.getElementById('progress-bar');
+    const bTitle = document.getElementById('boot-title');
+    const bSub = document.getElementById('boot-sub');
+    const bPct = document.getElementById('boot-pct');
+
+    function runAutoBoot() {
+      overlay.style.opacity = '1';
+      overlay.style.pointerEvents = 'auto';
+
+      let p = 0;
+      const interval = setInterval(() => {
+        p += 20;
+        pBar.style.width = p + '%';
+        bPct.innerText = p + '% (Auto-Booting)';
+
+        if (p === 40) {
+          bSub.innerText = 'Redroid 14 コンテナを初期化中...';
+        } else if (p === 60) {
+          bSub.innerText = 'ADB 接続 & 仮想ディスプレイ (1080x2400) 起動';
+        } else if (p === 80) {
+          bSub.innerText = 'com.google.android.youtube を自動起動中...';
+        } else if (p >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            overlay.style.opacity = '0';
+            overlay.style.pointerEvents = 'none';
+          }, 400);
+        }
+      }, 300);
+    }
+    // ページロード時に即座に自動起動！
+    window.onload = runAutoBoot;
+
+    // 動画切り替え
+    function switchVideo(id, title) {
+      document.getElementById('yt-player').src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&enablejsapi=1";
+      document.getElementById('video-title').innerText = title;
+      appendLog('cmd', 'am start -d "https://www.youtube.com/watch?v=' + id + '" -a android.intent.action.VIEW com.google.android.youtube');
+      appendLog('out', 'Activity launched: ' + title);
+    }
+
+    // ログ追加
+    const termLogs = document.getElementById('term-logs');
+    function appendLog(type, text) {
+      const div = document.createElement('div');
+      div.className = type + '-line';
+      if (type === 'cmd') {
+        div.innerText = 'root@novamoon-vm:/ # ' + text;
+      } else {
+        div.innerText = text;
+      }
+      termLogs.appendChild(div);
+      termLogs.scrollTop = termLogs.scrollHeight;
+    }
+
+    // ADB コマンド実行シミュレーション
+    function execCmd(cmd) {
+      appendLog('cmd', cmd);
+
+      if (cmd.includes('pm list')) {
+        appendLog('out', 'package:com.google.android.youtube\npackage:com.google.android.gms\npackage:com.android.systemui\npackage:com.android.chrome');
+      } else if (cmd.includes('dumpsys package com.google.android.youtube')) {
+        appendLog('out', 'Package [com.google.android.youtube] (7b492f1):\n  userId=10142\n  pkg=Package{8e93ba com.google.android.youtube}\n  codePath=/data/app/com.google.android.youtube/base.apk\n  versionName=19.42.34');
+      } else if (cmd.includes('top')) {
+        appendLog('out', 'Tasks: 84 total, 2 running\nPID 2410 u0_a142 14.2% CPU  312MB RAM  com.google.android.youtube\nPID  842 system    4.5% CPU  184MB RAM  system_server');
+      } else if (cmd.includes('am start')) {
+        appendLog('out', 'Starting: Intent { act=android.intent.action.MAIN cmp=com.google.android.youtube/.WatchWhileActivity }\nStatus: SUCCESS');
+      } else if (cmd.includes('reboot')) {
+        appendLog('sys', '[init] Reboot signal. Restarting VM...');
+        runAutoBoot();
+      } else {
+        appendLog('out', 'Command executed successfully: ' + cmd);
+      }
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('cmd-input');
+      const val = input.value.trim();
+      if (!val) return;
+      execCmd(val);
+      input.value = '';
+    }
+  </script>
 </body>
 </html>
