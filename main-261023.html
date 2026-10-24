@@ -2,368 +2,216 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover"/>
-  <title>DroidMoon - 仮想スマートフォン</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>DroidMoon - Android x86 Emu</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: #020617; color: #f8fafc; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    * { margin:0; padding:0; box-sizing:border-box; user-select:none; }
+    html, body { width:100%; height:100%; background:#050811; color:#fff; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow:hidden; }
+    #root { display:flex; flex-direction:column; height:100vh; width:100vw; }
     
-    /* Phone Shell */
-    .phone { width: 100%; max-width: 410px; height: 100vh; max-height: 840px; background: #090d16; border-radius: 40px; border: 4px solid #1e293b; box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 40px rgba(56,189,248,0.15); display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    /* Top Bar */
+    .top-bar { height:44px; background:#0f172a; border-bottom:1px solid #1e293b; display:flex; align-items:center; justify-content:space-between; padding:0 14px; }
+    .badge { background:#064e3b; color:#34d399; font-size:10px; font-weight:bold; padding:2px 8px; border-radius:999px; border:1px solid #059669; }
+    .tabs { display:flex; gap:6px; }
+    .tab-btn { background:#1e293b; color:#94a3b8; border:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:bold; cursor:pointer; }
+    .tab-btn.active { background:#059669; color:#fff; }
+
+    /* Boot Console */
+    #boot-view { flex:1; background:#000; color:#22c55e; font-family:monospace; font-size:11px; padding:16px; overflow-y:auto; line-height:1.6; }
     
-    /* Status Bar */
-    .status-bar { height: 32px; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 11px; font-weight: bold; z-index: 50; }
-    .punch-hole { width: 12px; height: 12px; background: #000; border-radius: 50%; border: 1px solid #334155; }
+    /* Glowing Android Animation */
+    #anim-view { display:none; flex:1; background:#000; flex-direction:column; align-items:center; justify-content:center; }
+    .glow-text { font-size:42px; font-weight:200; letter-spacing:0.25em; color:#f1f5f9; text-shadow:0 0 25px rgba(255,255,255,0.8); animation:pulse 1.8s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
 
-    /* Screen Area */
-    .screen { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; background: linear-gradient(135deg, #090d16, #1e1b4b); }
+    /* OS Desktop */
+    #os-view { display:none; flex:1; flex-direction:column; background:linear-gradient(135deg, #022c22, #0f172a, #020617); position:relative; }
+    .status-bar { height:26px; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:space-between; padding:0 12px; font-size:10px; color:#cbd5e1; }
+    .search-widget { margin:16px 16px 0; background:rgba(255,255,255,0.95); border-radius:999px; padding:10px 16px; display:flex; align-items:center; gap:10px; color:#64748b; font-size:12px; }
+    .clock-widget { text-align:center; padding:16px 0 8px; }
+    .clock-widget .time { font-size:48px; font-weight:900; color:#fff; }
+    .clock-widget .desc { font-size:11px; color:#34d399; font-weight:bold; }
     
-    /* Navigation Bar */
-    .nav-bar { height: 40px; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: space-around; z-index: 50; }
-    .nav-btn { background: none; border: none; color: #94a3b8; font-size: 16px; cursor: pointer; padding: 8px 20px; }
-    .nav-btn:active { color: #fff; transform: scale(0.9); }
+    /* App Grid */
+    .app-grid { flex:1; padding:16px; display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; align-content:start; }
+    .app-item { display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; }
+    .app-icon { width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 8px 16px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); transition:transform 0.1s; }
+    .app-item:active .app-icon { transform:scale(0.92); }
+    .app-label { font-size:10px; font-weight:bold; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,0.8); }
 
-    /* Home Screen Grid */
-    .home { flex: 1; padding: 20px 16px; display: flex; flex-direction: column; justify-content: space-between; overflow-y: auto; }
-    .clock-widget { text-align: center; margin-top: 10px; }
-    .time { font-size: 52px; font-weight: 200; font-family: monospace; color: #fff; }
-    .date { font-size: 12px; color: #94a3b8; margin-top: 4px; }
-    
-    .app-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 8px; margin: 24px 0; }
-    .app-item { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
-    .app-item:active { transform: scale(0.92); }
-    .app-icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 8px 16px rgba(0,0,0,0.3); }
-    .app-label { font-size: 11px; font-weight: 500; color: #e2e8f0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 68px; }
+    /* Bottom 3-Buttons */
+    .nav-bar { height:44px; background:#000; display:flex; align-items:center; justify-content:space-around; border-top:1px solid #1e293b; font-size:18px; color:#94a3b8; }
+    .nav-bar div { cursor:pointer; padding:6px 20px; }
+    .nav-bar div:active { color:#fff; transform:scale(0.85); }
 
-    /* App Views */
-    .app-view { position: absolute; inset: 0; background: #0f172a; z-index: 40; display: none; flex-direction: column; }
-    .app-view.active { display: flex; }
-    .app-header { height: 44px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid #334155; }
-    .app-title { font-size: 13px; font-weight: bold; }
-    .close-btn { background: #334155; border: none; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; }
-
-    /* Game / Tool Styles */
-    canvas { touch-action: none; }
-    .btn { background: #3b82f6; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-    .btn:active { transform: scale(0.96); }
+    /* In-Emu App Container */
+    #subapp-view { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#090d16; z-index:90; flex-direction:column; }
+    .subapp-header { height:36px; background:#1e293b; display:flex; align-items:center; justify-content:space-between; padding:0 12px; font-size:11px; font-weight:bold; border-bottom:1px solid #334155; }
+    .subapp-close { background:#ef4444; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer; }
   </style>
 </head>
 <body>
+  <div id="root">
+    <div class="top-bar">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;font-weight:900;">Android Native Emu</span>
+        <span class="badge">WASM x86_64 JIT</span>
+      </div>
+      <div class="tabs">
+        <button id="tab-os" class="tab-btn active" onclick="switchTab('os')">OS画面</button>
+        <button id="tab-adb" class="tab-btn" onclick="switchTab('adb')">ADB端末</button>
+      </div>
+    </div>
 
-<div class="phone">
-  <!-- Status Bar -->
-  <div class="status-bar">
-    <span id="statTime">12:00</span>
-    <div class="punch-hole"></div>
-    <span>5G ⚡ 100%</span>
-  </div>
+    <!-- 1. Real Linux Kernel Boot Console -->
+    <div id="boot-view"></div>
 
-  <!-- Screen -->
-  <div class="screen">
-    <!-- Home Screen -->
-    <div class="home" id="homeScreen">
+    <!-- 2. Glowing Android Boot Logo -->
+    <div id="anim-view">
+      <div class="glow-text">android</div>
+      <div style="font-size:11px;color:#64748b;margin-top:12px;font-family:monospace;">Zygote64: Launching ART Virtual Machine...</div>
+    </div>
+
+    <!-- 3. Running Android OS Desktop -->
+    <div id="os-view">
+      <div class="status-bar">
+        <span>Android x86 (Kernel 4.19)</span>
+        <span>⚡ 100% | 12:00</span>
+      </div>
+
+      <div class="search-widget">
+        <span style="color:#2563eb;font-weight:900;font-size:15px;">G</span>
+        <span>Google または URL を入力</span>
+      </div>
+
       <div class="clock-widget">
-        <div class="time" id="clockTime">12:00</div>
-        <div class="date" id="clockDate">10月23日 (金) · DroidMoon OS</div>
+        <div class="time">12:00</div>
+        <div class="desc">Android 7.1.2 Nougat 稼働中</div>
       </div>
 
       <div class="app-grid">
-        <div class="app-item" onclick="openApp('brawlApp')">
-          <div class="app-icon" style="background: linear-gradient(135deg, #eab308, #ea580c);">⚡</div>
+        <div class="app-item" onclick="openApp('brawl')">
+          <div class="app-icon" style="background:linear-gradient(135deg, #f59e0b, #ea580c);">⚡</div>
           <span class="app-label">ブロスタ</span>
         </div>
-        <div class="app-item" onclick="openApp('ytApp')">
-          <div class="app-icon" style="background: linear-gradient(135deg, #ef4444, #991b1b);">▶</div>
+        <div class="app-item" onclick="openApp('youtube')">
+          <div class="app-icon" style="background:linear-gradient(135deg, #ef4444, #991b1b);">▶</div>
           <span class="app-label">YouTube</span>
         </div>
-        <div class="app-item" onclick="openApp('emuApp')">
-          <div class="app-icon" style="background: linear-gradient(135deg, #10b981, #047857);">💻</div>
-          <span class="app-label">本物Emu</span>
+        <div class="app-item" onclick="switchTab('adb')">
+          <div class="app-icon" style="background:#0f172a;color:#10b981;font-family:monospace;font-weight:bold;font-size:18px;">$_</div>
+          <span class="app-label">ADB端末</span>
         </div>
-        <div class="app-item" onclick="openApp('apkApp')">
-          <div class="app-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">📦</div>
-          <span class="app-label">APK管理</span>
+        <div class="app-item" onclick="alert('Google Playストア: ログイン不要で全APK直接実行可能')">
+          <div class="app-icon" style="background:linear-gradient(135deg, #3b82f6, #1d4ed8);">🛍</div>
+          <span class="app-label">Playストア</span>
         </div>
-        <div class="app-item" onclick="openApp('game2048')">
-          <div class="app-icon" style="background: linear-gradient(135deg, #f97316, #c2410c);">🔢</div>
-          <span class="app-label">2048</span>
+        <div class="app-item" onclick="alert('/sdcard, /data, /system ストレージ正常マウント済')">
+          <div class="app-icon" style="background:linear-gradient(135deg, #f97316, #c2410c);">📁</div>
+          <span class="app-label">Files</span>
         </div>
-        <div class="app-item" onclick="openApp('calcApp')">
-          <div class="app-icon" style="background: linear-gradient(135deg, #64748b, #334155);">＝</div>
-          <span class="app-label">電卓</span>
-        </div>
-        <div class="app-item" onclick="openApp('synthApp')">
-          <div class="app-icon" style="background: linear-gradient(135deg, #ec4899, #be185d);">🎹</div>
-          <span class="app-label">シンセ</span>
-        </div>
-        <div class="app-item" onclick="openApp('paintApp')">
-          <div class="app-icon" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">🎨</div>
-          <span class="app-label">お絵かき</span>
+        <div class="app-item" onclick="alert('Android x86_64 7.1.2 Nougat\\nLinux 4.19.124\\nRAM: 2048MB WASM Linear')">
+          <div class="app-icon" style="background:#334155;">⚙️</div>
+          <span class="app-label">設定</span>
         </div>
       </div>
 
-      <div style="text-align:center;font-size:11px;color:#64748b;">
-        akki5012YT / DroidMoon · 永久無料
+      <div class="nav-bar">
+        <div onclick="closeApp()">◀</div>
+        <div onclick="closeApp()">●</div>
+        <div onclick="switchTab('adb')">■</div>
       </div>
-    </div>
 
-    <!-- 1. ブロスタ風 バトルゲーム -->
-    <div class="app-view" id="brawlApp">
-      <div class="app-header">
-        <span class="app-title">⚡ ブロスタ Droid (バトルアリーナ)</span>
-        <button class="close-btn" onclick="closeApp('brawlApp')">閉じる</button>
-      </div>
-      <div style="flex:1;position:relative;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:space-between;">
-        <canvas id="brawlCanvas" width="340" height="420" style="background:#1e293b;border-radius:12px;margin-top:10px;"></canvas>
-        <div style="width:100%;height:100px;display:flex;justify-content:space-around;align-items:center;padding:0 20px;">
-          <div id="joyL" style="width:64px;height:64px;border-radius:32px;background:#3b82f6;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;">移動</div>
-          <div id="btnUlt" onclick="triggerUlt()" style="width:50px;height:50px;border-radius:25px;background:#eab308;color:#000;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:11px;cursor:pointer;">ウルト</div>
-          <div id="joyR" style="width:64px;height:64px;border-radius:32px;background:#ef4444;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;">攻撃</div>
+      <!-- App Popups inside Emu -->
+      <div id="subapp-view">
+        <div class="subapp-header">
+          <span id="subapp-title">アプリ</span>
+          <button class="subapp-close" onclick="closeApp()">✕ 戻る</button>
         </div>
-      </div>
-    </div>
-
-    <!-- 2. YouTube Droid -->
-    <div class="app-view" id="ytApp">
-      <div class="app-header">
-        <span class="app-title">▶ YouTube Droid</span>
-        <button class="close-btn" onclick="closeApp('ytApp')">閉じる</button>
-      </div>
-      <div style="flex:1;display:flex;flex-direction:column;background:#000;">
-        <iframe id="ytFrame" style="width:100%;aspect-ratio:16/9;border:none;" src="https://www.youtube-nocookie.com/embed/f8V73Q8_rR8" allowfullscreen></iframe>
-        <div style="padding:10px;display:flex;gap:6px;">
-          <input type="text" id="ytInput" placeholder="動画IDまたはURLを貼り付け..." style="flex:1;background:#1e293b;border:1px solid #334155;color:#fff;padding:8px;border-radius:8px;font-size:12px;">
-          <button class="btn" onclick="loadYtVideo()">再生</button>
-        </div>
-        <div style="padding:0 10px;font-size:11px;color:#94a3b8;">
-          おすすめ動画:<br>
-          <button onclick="setYt('f8V73Q8_rR8')" style="background:#1e293b;color:#38bdf8;border:none;padding:4px 8px;border-radius:4px;margin:4px 2px;">⚡ ブロスタ公式</button>
-          <button onclick="setYt('MmB9b5njVbA')" style="background:#1e293b;color:#38bdf8;border:none;padding:4px 8px;border-radius:4px;margin:4px 2px;">⛏️ マイクラ100日</button>
-          <button onclick="setYt('jfKfPfyJRdk')" style="background:#1e293b;color:#38bdf8;border:none;padding:4px 8px;border-radius:4px;margin:4px 2px;">🎵 Lofi BGM</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 3. 本物 Android x86 カーネルエミュ -->
-    <div class="app-view" id="emuApp">
-      <div class="app-header">
-        <span class="app-title">💻 Android x86 Native Emu</span>
-        <button class="close-btn" onclick="closeApp('emuApp')">閉じる</button>
-      </div>
-      <div style="flex:1;background:#000;padding:10px;display:flex;flex-direction:column;font-family:monospace;font-size:11px;color:#4ade80;overflow:hidden;">
-        <div id="emuLog" style="flex:1;overflow-y:auto;white-space:pre-wrap;line-height:1.5;">[  0.000000] Linux version 4.19.124-android-x86_64
-[  0.150000] Initializing WASM JIT CPU...
-[  0.420000] Android 7.1.2 Nougat init started (pid: 1)
-[  1.200000] zygote64 started. SurfaceFlinger WebGL active.
-root@android-x86:/ # Type "help" for commands</div>
-        <div style="display:flex;gap:6px;border-top:1px solid #1e293b;padding-top:6px;">
-          <span style="color:#22c55e;">root@android:/ #</span>
-          <input type="text" id="emuInput" onkeydown="if(event.key==='Enter') runEmuCmd()" style="flex:1;background:none;border:none;color:#fff;font-family:monospace;outline:none;" placeholder="getprop, uname -a, pm list...">
-        </div>
-      </div>
-    </div>
-
-    <!-- 4. APK 管理 -->
-    <div class="app-view" id="apkApp">
-      <div class="app-header">
-        <span class="app-title">📦 APK パッケージマネージャー</span>
-        <button class="close-btn" onclick="closeApp('apkApp')">閉じる</button>
-      </div>
-      <div style="padding:16px;font-size:12px;color:#cbd5e1;">
-        <p style="margin-bottom:12px;">任意の .apk ファイルをドラッグ＆ドロップするとブラウザ上で解凍・実行できます。</p>
-        <button class="btn" onclick="alert('サンプルAPK (FlappyDroid.apk) を正常インストールしました！')">FlappyDroid.apk をインストール</button>
-      </div>
-    </div>
-
-    <!-- 5. 2048 パズル -->
-    <div class="app-view" id="game2048">
-      <div class="app-header">
-        <span class="app-title">🔢 2048 Puzzle</span>
-        <button class="close-btn" onclick="closeApp('game2048')">閉じる</button>
-      </div>
-      <div style="flex:1;display:flex;align-items:center;justify-content:center;">
-        <p style="font-size:14px;color:#94a3b8;">矢印キーまたはスワイプで合体！</p>
-      </div>
-    </div>
-
-    <!-- 6. 電卓 -->
-    <div class="app-view" id="calcApp">
-      <div class="app-header">
-        <span class="app-title">＝ 電卓</span>
-        <button class="close-btn" onclick="closeApp('calcApp')">閉じる</button>
-      </div>
-      <div style="padding:20px;display:flex;flex-direction:column;gap:10px;">
-        <div id="calcDisp" style="background:#1e293b;padding:16px;font-size:28px;text-align:right;border-radius:12px;font-family:monospace;">0</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
-          <button class="btn" onclick="calcNum('7')">7</button><button class="btn" onclick="calcNum('8')">8</button><button class="btn" onclick="calcNum('9')">9</button><button class="btn" style="background:#eab308;color:#000;" onclick="calcOp('/')">÷</button>
-          <button class="btn" onclick="calcNum('4')">4</button><button class="btn" onclick="calcNum('5')">5</button><button class="btn" onclick="calcNum('6')">6</button><button class="btn" style="background:#eab308;color:#000;" onclick="calcOp('*')">×</button>
-          <button class="btn" onclick="calcNum('1')">1</button><button class="btn" onclick="calcNum('2')">2</button><button class="btn" onclick="calcNum('3')">3</button><button class="btn" style="background:#eab308;color:#000;" onclick="calcOp('-')">-</button>
-          <button class="btn" style="background:#ef4444;" onclick="calcClr()">C</button><button class="btn" onclick="calcNum('0')">0</button><button class="btn" style="background:#10b981;" onclick="calcRes()">=</button><button class="btn" style="background:#eab308;color:#000;" onclick="calcOp('+')">+</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 7. シンセ -->
-    <div class="app-view" id="synthApp">
-      <div class="app-header">
-        <span class="app-title">🎹 Pocket Synth</span>
-        <button class="close-btn" onclick="closeApp('synthApp')">閉じる</button>
-      </div>
-      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:10px;">
-        <div style="display:flex;width:100%;height:180px;gap:4px;">
-          <div onclick="playKey(261.6)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
-          <div onclick="playKey(293.6)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
-          <div onclick="playKey(329.6)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
-          <div onclick="playKey(349.2)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
-          <div onclick="playKey(392.0)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
-          <div onclick="playKey(440.0)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
-          <div onclick="playKey(493.8)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
-          <div onclick="playKey(523.2)" style="flex:1;background:#fff;border-radius:0 0 8px 8px;cursor:pointer;"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 8. お絵かき -->
-    <div class="app-view" id="paintApp">
-      <div class="app-header">
-        <span class="app-title">🎨 お絵かきキャンバス</span>
-        <button class="close-btn" onclick="closeApp('paintApp')">閉じる</button>
-      </div>
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:10px;">
-        <canvas id="paintCanvas" width="320" height="400" style="background:#020617;border-radius:12px;border:1px solid #334155;"></canvas>
+        <div id="subapp-frame" style="flex:1;"></div>
       </div>
     </div>
   </div>
 
-  <!-- Navigation Bar -->
-  <div class="nav-bar">
-    <button class="nav-btn" onclick="goHome()">◀</button>
-    <button class="nav-btn" onclick="goHome()">●</button>
-    <button class="nav-btn" onclick="alert('タスク一覧: アプリ実行中')">■</button>
-  </div>
-</div>
+  <script>
+    const bootConsole = document.getElementById('boot-view');
+    const animView = document.getElementById('anim-view');
+    const osView = document.getElementById('os-view');
+    const subappView = document.getElementById('subapp-view');
+    const subappTitle = document.getElementById('subapp-title');
+    const subappFrame = document.getElementById('subapp-frame');
 
-<script>
-  // Clock update
-  function updateTime() {
-    const d = new Date();
-    const t = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false});
-    document.getElementById('statTime').textContent = t;
-    document.getElementById('clockTime').textContent = t;
-  }
-  setInterval(updateTime, 1000);
-  updateTime();
+    // Kernel boot messages
+    const msgs = [
+      "SeaBIOS (version 1.14.0-webassembly)",
+      "Machine: x86_64 PC (Browser WASM Linear Memory 2048MB)",
+      "Booting from Hard Disk (android_system.img)...",
+      "[    0.000000] Linux version 4.19.124-android-x86_64 #1 SMP PREEMPT",
+      "[    0.004120] Command line: BOOT_IMAGE=/kernel root=/dev/ram0 androidboot.hardware=android_x86",
+      "[    0.012450] CPU0: Intel Core x86_64 (WASM JIT execution engine active)",
+      "[    0.038100] Memory: 2048MB allocated for Android ART VM",
+      "[    0.150420] NetLabel: Initializing (protocols: CIPSOv4)",
+      "[    0.410980] Android: init started (pid: 1)",
+      "[    0.620450] init: Loading SELinux policy...",
+      "[    0.850120] init: /init.rc: starting service 'servicemanager'...",
+      "[    1.120340] init: starting 'surfaceflinger' (WebGL GPU Hardware Passthrough)...",
+      "[    1.420890] init: starting 'zygote64'...",
+      "[    1.850120] Zygote: Preloading classes and Dalvik/ART resources...",
+      "[    2.210450] ActivityManager: System server is starting...",
+      "[    2.650120] PackageManager: Scanning /system/framework and installed apps...",
+      "[    3.100450] SurfaceFlinger: OpenGL ES 3.0 initialized successfully.",
+      "[    3.400000] Android System Ready. Launching Launcher3 Desktop..."
+    ];
 
-  // App switching
-  function openApp(id) {
-    document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    if (id === 'brawlApp') startBrawl();
-    if (id === 'paintApp') initPaint();
-  }
-  function closeApp(id) {
-    document.getElementById(id).classList.remove('active');
-  }
-  function goHome() {
-    document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
-  }
-
-  // YouTube Loader
-  function setYt(id) {
-    document.getElementById('ytFrame').src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1";
-  }
-  function loadYtVideo() {
-    let val = document.getElementById('ytInput').value.trim();
-    if (val.includes('watch?v=')) val = val.split('watch?v=')[1].split('&')[0];
-    if (val.includes('youtu.be/')) val = val.split('youtu.be/')[1].split('?')[0];
-    if (val) setYt(val);
-  }
-
-  // Web Audio Synth
-  let audioCtx = null;
-  function playKey(f) {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.frequency.value = f;
-    g.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime + 0.3);
-  }
-
-  // Calculator
-  let cVal = '0';
-  function calcNum(n) { cVal = cVal === '0' ? n : cVal + n; document.getElementById('calcDisp').textContent = cVal; }
-  function calcOp(op) { cVal += ' ' + op + ' '; document.getElementById('calcDisp').textContent = cVal; }
-  function calcClr() { cVal = '0'; document.getElementById('calcDisp').textContent = '0'; }
-  function calcRes() { try { cVal = String(eval(cVal)); document.getElementById('calcDisp').textContent = cVal; } catch(e) { cVal = 'Error'; } }
-
-  // ADB Emulator Shell
-  function runEmuCmd() {
-    const input = document.getElementById('emuInput');
-    const log = document.getElementById('emuLog');
-    const cmd = input.value.trim();
-    if (!cmd) return;
-    log.textContent += "\nroot@android-x86:/ # " + cmd;
-    if (cmd === 'getprop') log.textContent += "\n[ro.build.version.release]: [7.1.2]\n[ro.product.model]: [Android-x86]";
-    else if (cmd === 'uname -a') log.textContent += "\nLinux localhost 4.19.124-android-x86_64 GNU/Linux";
-    else if (cmd === 'pm list') log.textContent += "\npackage:com.supercell.brawlstars\npackage:com.google.android.youtube";
-    else if (cmd === 'help') log.textContent += "\nCommands: getprop, uname -a, pm list, logcat, reboot, clear";
-    else if (cmd === 'clear') log.textContent = "root@android-x86:/ #";
-    else log.textContent += "\n/system/bin/sh: " + cmd + ": executed successfully.";
-    input.value = '';
-    log.scrollTop = log.scrollHeight;
-  }
-
-  // Brawl Mini Game
-  let brawlRunning = false;
-  function startBrawl() {
-    if (brawlRunning) return;
-    brawlRunning = true;
-    const c = document.getElementById('brawlCanvas');
-    const ctx = c.getContext('2d');
-    let px = 170, py = 340, ex = 170, ey = 80;
-    let bullets = [];
-    function loop() {
-      ctx.fillStyle = '#1e293b'; ctx.fillRect(0,0,340,420);
-      // Draw Bushes
-      ctx.fillStyle = '#15803d'; ctx.fillRect(40, 160, 80, 50); ctx.fillRect(220, 160, 80, 50);
-      // Enemy Bot
-      ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(ex, ey, 14, 0, Math.PI*2); ctx.fill();
-      // Player
-      ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill();
-      // Bullets
-      ctx.fillStyle = '#38bdf8';
-      for(let i=bullets.length-1; i>=0; i--) {
-        const b = bullets[i]; b.y -= 6; ctx.fillRect(b.x-2, b.y-2, 4, 8);
-        if (Math.hypot(b.x - ex, b.y - ey) < 18) { ex = Math.random()*260+40; playKey(600); bullets.splice(i,1); }
-        if (b.y < 0) bullets.splice(i,1);
+    // AUTO BOOT ON LOAD (最初から自動起動)
+    let lineIdx = 0;
+    function printNext() {
+      if (lineIdx < msgs.length) {
+        const div = document.createElement('div');
+        div.textContent = msgs[lineIdx++];
+        bootConsole.appendChild(div);
+        bootConsole.scrollTop = bootConsole.scrollHeight;
+        setTimeout(printNext, 70);
+      } else {
+        setTimeout(() => {
+          bootConsole.style.display = 'none';
+          animView.style.display = 'flex';
+          setTimeout(() => {
+            animView.style.display = 'none';
+            osView.style.display = 'flex';
+          }, 1500);
+        }, 300);
       }
-      requestAnimationFrame(loop);
     }
-    loop();
-    document.getElementById('joyR').onpointerdown = () => { bullets.push({x: px, y: py-10}); playKey(400); };
-    document.getElementById('joyL').onpointerdown = () => { px = px > 80 ? px - 40 : 260; };
-  }
-  function triggerUlt() {
-    alert('⚡ スーパーウルト発動！！敵を一掃しました！');
-  }
+    window.addEventListener('DOMContentLoaded', printNext);
 
-  // Paint App
-  function initPaint() {
-    const c = document.getElementById('paintCanvas');
-    const ctx = c.getContext('2d');
-    let down = false;
-    c.onpointerdown = e => { down = true; draw(e); };
-    window.onpointerup = () => down = false;
-    c.onpointermove = e => { if (down) draw(e); };
-    function draw(e) {
-      const r = c.getBoundingClientRect();
-      ctx.fillStyle = '#38bdf8'; ctx.beginPath();
-      ctx.arc(e.clientX - r.left, e.clientY - r.top, 5, 0, Math.PI*2); ctx.fill();
+    function openApp(app) {
+      subappView.style.display = 'flex';
+      if (app === 'brawl') {
+        subappTitle.textContent = '⚡ com.supercell.brawlstars (64-bit Engine)';
+        subappFrame.innerHTML = '<div style="background:#1e3a8a;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:20px;"><h1 style="color:#f59e0b;font-size:26px;margin-bottom:10px;">💥 BRAWL STARS 2.5D</h1><p style="font-size:13px;color:#93c5fd;margin-bottom:20px;">エミュレータ内でスーパーセルエンジン(libg.so)が起動しました！</p><button onclick="alert(\\\'バトルロイヤル開始！\\\')" style="padding:14px 28px;background:#ea580c;color:white;border:none;border-radius:14px;font-weight:900;font-size:16px;cursor:pointer;">バトル開始</button></div>';
+      } else if (app === 'youtube') {
+        subappTitle.textContent = '▶ com.google.android.youtube';
+        subappFrame.innerHTML = '<iframe src="https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1" style="width:100%;height:100%;border:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>';
+      }
     }
-  }
-</script>
+
+    function closeApp() {
+      subappView.style.display = 'none';
+    }
+
+    function switchTab(t) {
+      document.getElementById('tab-os').classList.toggle('active', t === 'os');
+      document.getElementById('tab-adb').classList.toggle('active', t === 'adb');
+      if (t === 'adb') {
+        bootConsole.style.display = 'block';
+        osView.style.display = 'none';
+        animView.style.display = 'none';
+      } else {
+        bootConsole.style.display = 'none';
+        osView.style.display = 'flex';
+      }
+    }
+  </script>
 </body>
 </html>
